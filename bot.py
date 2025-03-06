@@ -25,7 +25,7 @@ spam_chats = []
 async def start(event):
   await client.send_message(
     event.chat_id,
-    "__**I'm @Mentions_All_Bot Bot**, I can mention almost all members in group or channel 👻\nClick **/help** for more information__\n\n**Join @Ash_Bots For Latest Updates**",
+    "__**I'm @TagallxBot Bot**, I can mention almost all members in group or channel 👻\nClick **/help** for more information__\n\n**Join @Ash_Bots For Latest Updates**",
     link_preview=False,
     buttons=(
       [
