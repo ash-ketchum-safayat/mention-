@@ -25,7 +25,7 @@ spam_chats = []
 async def start(event):
   await client.send_message(
     event.chat_id,
-    "__**I'm @Mentions_All_Bot Bot**, I can mention almost all members in group or channel 👻\nClick **/help** for more information__\n\n**Join @Rudra_Bots For Latest Updates**",
+    "__**I'm @Mentions_All_Bot Bot**, I can mention almost all members in group or channel 👻\nClick **/help** for more information__\n\n**Join @Ash_Bots For Latest Updates**",
     link_preview=False,
     buttons=(
       [
@@ -36,7 +36,7 @@ async def start(event):
 
 @client.on(events.NewMessage(pattern="^/help$"))
 async def help(event):
-  helptext = "**Help Menu of @Mentions_All_Bot**\n\nCommand: /mention | /emoji\n__You can use this command with text what you want to mention others.__\n*Example:*\n*1.* `/mention Good Morning!`\n*2.* `/emoji Hello World!`\n__You can you this command as a reply to any message. Bot will tag users to that replied messsage__.\n\n**Join @Rudra_Bots For Latest Updates**"
+  helptext = "**Help Menu of @Mentions_All_Bot**\n\nCommand: /mention | /emoji\n__You can use this command with text what you want to mention others.__\n*Example:*\n*1.* `/mention Good Morning!`\n*2.* `/emoji Hello World!`\n__You can you this command as a reply to any message. Bot will tag users to that replied messsage__.\n\n**Join @Ash_Bots For Latest Updates**"
   await event.reply(
     helptext,
     link_preview=False,
@@ -98,7 +98,7 @@ async def mentionall(event):
     if not chat_id in spam_chats:
       break
     usrnum += 1
-    usrtxt += f"<a href ='tg://user?id={usr.id}'><b> {usr.first_name}</b></a>"
+    usrtxt += f"<a href ='tg://user?id={usr.id}'><b> {usr.first_name}</b></a>, "
     if usrnum == 7:
       if mode == "text_on_cmd":
         txt = f"{usrtxt}\n\n<b>{msg}</b>"
@@ -159,7 +159,7 @@ async def mentionall(event):
     if not chat_id in spam_chats:
       break
     usrnum += 1
-    usrtxt += f"<a href ='tg://user?id={usr.id}'><b>  {random.choice(emojis)}</b></a>"
+    usrtxt += f"<a href ='tg://user?id={usr.id}'><b>  {random.choice(emojis)}</b></a>, "
     if usrnum == 30:
       if mode == "text_on_cmd":
         txt = f"{usrtxt}\n\n<b>{msg}</b>"
