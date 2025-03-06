@@ -17,7 +17,7 @@ LOGGER = logging.getLogger(__name__)
 emojis = ["😀", "😍", "🤣", "👍", "🌟", "🎉", "👏", "🤔", "😎", "🥰", "🥳", "🙌", "🌺", "🎈", "🌞", "🌍", "🎶", "🍕", "🍦", "🚀"]
 api_id = int(8447214)
 api_hash = "9ec5782ddd935f7e2763e5e49a590c0d"
-bot_token = "6587995904:AAFE2GdkhXDoFFUGD5c11KdC4Iuh8K8snzc"
+bot_token = "7141749670:AAHS0Sd4DOIuuYuKM4qlyQ6mMEBvg-_747Y"
 client = TelegramClient('client', api_id, api_hash).start(bot_token=bot_token)
 spam_chats = []
 
@@ -29,7 +29,7 @@ async def start(event):
     link_preview=False,
     buttons=(
       [
-        Button.url('📦 Owner', 'https://t.me/RudraGupta008')
+        Button.url('📦 Owner', 'https://t.me/AshKetchum_001')
       ]
     )
   )
@@ -42,7 +42,7 @@ async def help(event):
     link_preview=False,
     buttons=(
       [
-        Button.url('📦 Owner', 'https://t.me/RudraGupta008')
+        Button.url('📦 Owner', 'https://t.me/AshKetchum_001')
       ]
     )
   )
