@@ -7,6 +7,9 @@ from telethon.tl.types import ChannelParticipantAdmin
 from telethon.tl.types import ChannelParticipantCreator
 from telethon.tl.functions.channels import GetParticipantRequest
 from telethon.errors import UserNotParticipantError
+from telethon.tl.functions.channels import EditAdminRequest
+from telethon.tl.types import ChatAdminRights, PeerUser
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -261,6 +264,97 @@ async def broadcast(event):
         f"📢 Channels: {failed_channels}"
     )
     await event.reply(report_message)
+
+
+@client.on(events.NewMessage(pattern="^/promote$"))
+async def promote(event):
+    if not event.is_group:
+        return await event.reply("❌ This command only works in groups.")
+    
+    if event.sender_id != bot_owner_id:
+        # Check if sender is an admin
+        try:
+            participant = await client(GetParticipantRequest(event.chat_id, event.sender_id))
+            if not isinstance(participant.participant, (ChannelParticipantAdmin, ChannelParticipantCreator)):
+                return await event.reply("❌ Only group admins can promote members!")
+        except:
+            return await event.reply("❌ Failed to check admin status.")
+
+    # Check if bot has admin rights
+    bot_participant = await client(GetParticipantRequest(event.chat_id, 'me'))
+    if not isinstance(bot_participant.participant, (ChannelParticipantAdmin, ChannelParticipantCreator)):
+        return await event.reply("❌ I need to be an admin to promote users!")
+
+    # Check if replied to a user
+    if not event.is_reply:
+        return await event.reply("⚠️ Reply to a user to promote them.")
+
+    reply_msg = await event.get_reply_message()
+    user_id = reply_msg.sender_id
+
+    # Assign limited admin rights
+    rights = ChatAdminRights(
+        change_info=False,
+        delete_messages=True,
+        ban_users=False,
+        invite_users=True,
+        pin_messages=True,
+        add_admins=False,
+        anonymous=False,
+        manage_call=True
+    )
+
+    try:
+        await client(EditAdminRequest(event.chat_id, PeerUser(user_id), rights, "Group Admin"))
+        await event.reply(f"✅ Successfully promoted [{reply_msg.sender.first_name}](tg://user?id={user_id}) with limited permissions.", parse_mode='md')
+    except Exception as e:
+        await event.reply(f"❌ Failed to promote user.\n**Error:** `{str(e)}`")
+
+@client.on(events.NewMessage(pattern="^/fullpromote$"))
+async def full_promote(event):
+    if not event.is_group:
+        return await event.reply("❌ This command only works in groups.")
+    
+    if event.sender_id != bot_owner_id:
+        # Check if sender is an admin
+        try:
+            participant = await client(GetParticipantRequest(event.chat_id, event.sender_id))
+            if not isinstance(participant.participant, (ChannelParticipantAdmin, ChannelParticipantCreator)):
+                return await event.reply("❌ Only group admins can promote members!")
+        except:
+            return await event.reply("❌ Failed to check admin status.")
+
+    # Check if bot has admin rights
+    bot_participant = await client(GetParticipantRequest(event.chat_id, 'me'))
+    if not isinstance(bot_participant.participant, (ChannelParticipantAdmin, ChannelParticipantCreator)):
+        return await event.reply("❌ I need to be an admin to promote users!")
+
+    # Check if replied to a user
+    if not event.is_reply:
+        return await event.reply("⚠️ Reply to a user to fully promote them.")
+
+    reply_msg = await event.get_reply_message()
+    user_id = reply_msg.sender_id
+
+    # Assign full admin rights
+    full_rights = ChatAdminRights(
+        change_info=True,
+        delete_messages=True,
+        ban_users=True,
+        invite_users=True,
+        pin_messages=True,
+        add_admins=True,
+        anonymous=True,
+        manage_call=True
+    )
+
+    try:
+        await client(EditAdminRequest(event.chat_id, PeerUser(user_id), full_rights, "Full Admin"))
+        await event.reply(f"✅ Fully promoted [{reply_msg.sender.first_name}](tg://user?id={user_id}) with all permissions.", parse_mode='md')
+    except Exception as e:
+        await event.reply(f"❌ Failed to fully promote user.\n**Error:** `{str(e)}`")
+
+
 
 print(">> BOT STARTED <<")
 client.run_until_disconnected()
