@@ -18,7 +18,7 @@ emojis = ["😀", "😍", "🤣", "👍", "🌟", "🎉", "👏", "🤔", "😎"
 api_id = int(4226067)
 api_hash = "2d01711f0566de2309b633f49542e7e2"
 bot_token = "7990236138:AAFt1Y00cXK6gxyve84fp2J89b5hbjU5uJ0"
-client = TelegramClient('client', api_id, api_hash).start(bot_token=bot_token)
+client = TelegramClient('client_mention', api_id, api_hash).start(bot_token=bot_token)
 spam_chats = []
 
 @client.on(events.NewMessage(pattern="^/start$"))
