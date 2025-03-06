@@ -18,6 +18,7 @@ emojis = ["😀", "😍", "🤣", "👍", "🌟", "🎉", "👏", "🤔", "😎"
 api_id = int(4226067)
 api_hash = "2d01711f0566de2309b633f49542e7e2"
 bot_token = "7990236138:AAFt1Y00cXK6gxyve84fp2J89b5hbjU5uJ0"
+bot_owner_id = 7941973230
 client = TelegramClient('client_mention', api_id, api_hash).start(bot_token=bot_token)
 spam_chats = []
 
@@ -36,7 +37,7 @@ async def start(event):
 
 @client.on(events.NewMessage(pattern="^/help$"))
 async def help(event):
-  helptext = "**Help Menu of @Mentions_All_Bot**\n\nCommand: /mention | /emoji\n__You can use this command with text what you want to mention others.__\n*Example:*\n*1.* `/mention Good Morning!`\n*2.* `/emoji Hello World!`\n__You can you this command as a reply to any message. Bot will tag users to that replied messsage__.\n\n**Join @Ash_Bots For Latest Updates**"
+  helptext = "**Help Menu of @TagAllxBot**\n\nCommand: /mention | /emoji\n__You can use this command with text what you want to mention others.__\n*Example:*\n*1.* `/mention Good Morning!`\n*2.* `/emoji Hello World!`\n__You can you this command as a reply to any message. Bot will tag users to that replied messsage__.\n\n**Join @Ash_Bots For Latest Updates**"
   await event.reply(
     helptext,
     link_preview=False,
@@ -185,6 +186,81 @@ async def cancel_spam(event):
     except:
       pass
     return await event.respond('__Stopped.__')
+
+@client.on(events.NewMessage(pattern="^/botstats$"))
+async def bot_stats(event):
+    if event.sender_id != bot_owner_id:
+        return await event.reply("❌ You are not authorized to use this command.")
+
+    total_users = len(users_db)
+    total_groups = len(groups_db)
+    total_channels = len(channels_db)
+
+    stats_message = (
+        f"📊 **Bot Statistics** 📊\n\n"
+        f"👤 **Total Users:** {total_users}\n"
+        f"👥 **Total Groups:** {total_groups}\n"
+        f"📢 **Total Channels:** {total_channels}"
+    )
+    await event.reply(stats_message)
+
+@client.on(events.ChatAction)
+async def track_chats(event):
+    chat = await event.get_chat()
+    if event.user_added or event.user_joined:
+        if chat.broadcast:
+            channels_db.add(chat.id)
+        elif chat.megagroup:
+            groups_db.add(chat.id)
+        else:
+            users_db.add(chat.id)
+
+@client.on(events.NewMessage(pattern="^/broadcast$"))
+async def broadcast(event):
+    if event.sender_id != bot_owner_id:
+        return await event.reply("❌ You are not authorized to use this command.")
+    
+    if not event.is_reply:
+        return await event.reply("Reply to a message to broadcast it.")
+    
+    message = await event.get_reply_message()
+    
+    sent_users, sent_groups, sent_channels = 0, 0, 0
+    failed_users, failed_groups, failed_channels = 0, 0, 0
+
+    for user_id in users_db:
+        try:
+            await client.send_message(user_id, message)
+            sent_users += 1
+        except:
+            failed_users += 1
+
+    for group_id in groups_db:
+        try:
+            await client.send_message(group_id, message)
+            sent_groups += 1
+        except:
+            failed_groups += 1
+
+    for channel_id in channels_db:
+        try:
+            await client.send_message(channel_id, message)
+            sent_channels += 1
+        except:
+            failed_channels += 1
+
+    report_message = (
+        "✅ **Broadcast Completed** ✅\n\n"
+        f"📤 **Successfully Sent:**\n"
+        f"👤 Users: {sent_users}\n"
+        f"👥 Groups: {sent_groups}\n"
+        f"📢 Channels: {sent_channels}\n\n"
+        f"❌ **Failed To Send:**\n"
+        f"👤 Users: {failed_users}\n"
+        f"👥 Groups: {failed_groups}\n"
+        f"📢 Channels: {failed_channels}"
+    )
+    await event.reply(report_message)
 
 print(">> BOT STARTED <<")
 client.run_until_disconnected()
