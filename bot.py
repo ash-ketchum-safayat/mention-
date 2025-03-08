@@ -51,73 +51,48 @@ async def help(event):
     )
   )
   
-@client.on(events.NewMessage(pattern="^/mention ?(.*)"))
-async def mentionall(event):
-  chat_id = event.chat_id
-  if event.is_private:
-    return await event.respond("__This command can be use in groups and channels!__")
-  
-  is_admin = False
-  try:
-    partici_ = await client(GetParticipantRequest(
-      event.chat_id,
-      event.sender_id
-    ))
-  except UserNotParticipantError:
+@client.on(events.NewMessage(pattern="^/(tagall|mention|mentionall|utag|loud) ?(.*)"))
+async def mention_all(event):
+    chat_id = event.chat_id
+    if event.is_private:
+        return await event.respond("__This command can only be used in groups and channels!__")
+
+    # Check if sender is an admin
     is_admin = False
-  else:
-    if (
-      isinstance(
-        partici_.participant,
-        (
-          ChannelParticipantAdmin,
-          ChannelParticipantCreator
-        )
-      )
-    ):
-      is_admin = True
-  if not is_admin:
-    return await event.respond("__Only admins can mention all!__")
-  
-  if event.chat_id in spam_chats:
-    return await event.respond('**There is already proccess on going...**')
+    try:
+        partici_ = await client(GetParticipantRequest(chat_id, event.sender_id))
+        if isinstance(partici_.participant, (ChannelParticipantAdmin, ChannelParticipantCreator)):
+            is_admin = True
+    except UserNotParticipantError:
+        pass
 
-  if event.pattern_match.group(1) and event.is_reply:
-    return await event.respond("__Give me one argument!__")
-  elif event.pattern_match.group(1):
-    mode = "text_on_cmd"
-    msg = event.pattern_match.group(1)
-  elif event.is_reply:
-    mode = "text_on_reply"
-    msg = await event.get_reply_message()
-    if msg == None:
-        return await event.respond("__I can't mention members for older messages! (messages which are sent before I'm added to group)__")
-  else:
-    return await event.respond("__Reply to a message or give me some text to mention others!__")
-  
-  spam_chats.append(chat_id)
-  usrnum = 0
-  usrtxt = ''
-  async for usr in client.iter_participants(chat_id):
-    if not chat_id in spam_chats:
-      break
-    usrnum += 1
-    usrtxt += f"<a href ='tg://user?id={usr.id}'><b> {usr.first_name}</b></a>, "
-    if usrnum == 7:
-      if mode == "text_on_cmd":
-        txt = f"{usrtxt}\n\n<b>{msg}</b>"
-        await client.send_message(chat_id, txt,parse_mode='HTML')
-      elif mode == "text_on_reply":
-        await msg.reply(usrtxt,parse_mode='HTML')
-      await asyncio.sleep(1.5)
-      usrnum = 0
-      usrtxt = ''
-  try:
-    spam_chats.remove(chat_id)
-    await client.send_message(chat_id,'<b>Mentioning All Users Done ✅</b>',parse_mode='HTML')
-  except:
-    pass
+    if not is_admin:
+        return await event.respond("__Only admins can mention all!__")
 
+    if chat_id in spam_chats:
+        return await event.respond("**There is already a process ongoing...**")
+
+    msg = event.pattern_match.group(2) or "Hello everyone!"
+    spam_chats.append(chat_id)
+
+    usrnum = 0
+    usrtxt = ''
+    async for usr in client.iter_participants(chat_id):
+        if chat_id not in spam_chats:
+            break
+        usrnum += 1
+        usrtxt += f"<a href='tg://user?id={usr.id}'><b> {usr.first_name}</b></a>, "
+        if usrnum == 7:
+            await client.send_message(chat_id, f"{usrtxt}\n\n<b>{msg}</b>", parse_mode='HTML')
+            await asyncio.sleep(1.5)
+            usrnum = 0
+            usrtxt = ''
+
+    try:
+        spam_chats.remove(chat_id)
+        await client.send_message(chat_id, "<b>Mentioning All Users Done ✅</b>", parse_mode='HTML')
+    except:
+        pass
 @client.on(events.NewMessage(pattern="^/emoji ?(.*)"))
 async def mentionall(event):
   chat_id = event.chat_id
@@ -179,16 +154,14 @@ async def mentionall(event):
   except:
     pass
 
-@client.on(events.NewMessage(pattern="^/cancel$"))
+
+@client.on(events.NewMessage(pattern="^/(stop|stopall|cancel|unmention|untagall)$"))
 async def cancel_spam(event):
-  if not event.chat_id in spam_chats:
-    return await event.respond('__There is no proccess on going...__')
-  else:
-    try:
-      spam_chats.remove(event.chat_id)
-    except:
-      pass
-    return await event.respond('__Stopped.__')
+    chat_id = event.chat_id
+    if chat_id not in spam_chats:
+        return await event.respond("__There is no process ongoing...__")
+    spam_chats.remove(chat_id)
+    await event.respond("__Stopped mentioning users.__")
 
 @client.on(events.NewMessage(pattern="^/botstats$"))
 async def bot_stats(event):
