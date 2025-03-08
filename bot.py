@@ -90,7 +90,7 @@ async def mention_all(event):
 
     try:
         spam_chats.remove(chat_id)
-        await client.send_message(chat_id, "<b>Mentioning All Users Done ✅</b>", parse_mode='HTML')
+        await client.send_message(chat_id, "<b>Mentioning All Users Done ✅</b>\nJoin Bot Updates : @Ash_Bots", parse_mode='HTML')
     except:
         pass
 @client.on(events.NewMessage(pattern="^/emoji ?(.*)"))
