@@ -335,8 +335,7 @@ async def contact_info(event):
             Button.url("Developer ❤️", "https://t.me/AshKetchum_001")
     ]
     
-    await client.send_file(
-        event.chat_id,
+    await event.reply(
         file=image_url,
         caption="📞 **Information**\n\n **Updates**: [Updates](https://t.me/Ash_Bots)\n\nFeel free to reach out!",
         buttons=buttons,
