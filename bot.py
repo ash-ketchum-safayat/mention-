@@ -337,7 +337,7 @@ async def contact_info(event):
     
     await event.reply(
         file=image_url,
-        caption="📞 **Information**\n\n **Updates**: [Updates](https://t.me/Ash_Bots)\n\nFeel free to reach out!",
+        message="📞 **Contact Information**\n\n🔹 **Updates**: [Updates ⭐](https://t.me/Ash_Bots)\nMy Master will help if you if you have any bug , problem so Feel free to reach out!",
         buttons=buttons,
         link_preview=False
     )
