@@ -332,16 +332,13 @@ async def full_promote(event):
 async def contact_info(event):
     image_url = "https://files.catbox.moe/vhami2.jpg"
     buttons = [
-        [
-            Button.url("Developer ❤️", "https://t.me/AshKetchum_001"),
-            Button.url("Updates 👍", "https://t.me/Ash_Bots")
-        ]
+            Button.url("Developer ❤️", "https://t.me/AshKetchum_001")
     ]
     
     await client.send_file(
         event.chat_id,
         file=image_url,
-        caption="📞 **Contact Information**\n\n🔹 **Developer**: [AshKetchum_001](https://t.me/AshKetchum_001)\n🔹 **Updates**: [Ash_Bots](https://t.me/Ash_Bots)\n\nFeel free to reach out!",
+        caption="📞 **Information**\n\n **Updates**: [Updates](https://t.me/Ash_Bots)\n\nFeel free to reach out!",
         buttons=buttons,
         link_preview=False
     )
