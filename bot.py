@@ -20,8 +20,8 @@ LOGGER = logging.getLogger(__name__)
 emojis = ["😀", "😍", "🤣", "👍", "🌟", "🎉", "👏", "🤔", "😎", "🥰", "🥳", "🙌", "🌺", "🎈", "🌞", "🌍", "🎶", "🍕", "🍦", "🚀"]
 api_id = int(4226067)
 api_hash = "2d01711f0566de2309b633f49542e7e2"
-bot_token = "7990236138:AAFt1Y00cXK6gxyve84fp2J89b5hbjU5uJ0"
-bot_owner_id = 7946913230
+bot_token = "8134891989:AAHMEvVHGWSzux-AtQP3856X6-k2gmzQJEM"
+bot_owner_id = 6279412066
 client = TelegramClient('client_mention', api_id, api_hash).start(bot_token=bot_token)
 spam_chats = []
 
@@ -29,7 +29,7 @@ spam_chats = []
 async def start(event):
   await client.send_message(
     event.chat_id,
-    "__**I'm @TagallxBot Bot**, I can mention almost all members in group or channel 👻\nClick **/help** for more information__\n\n**Join @Ash_Bots For Latest Updates**",
+    "__I'm @TagallxBot Bot, I can mention almost all members in group or channel 👻\nClick `/help` for more information__\n\nJoin @AshxBots For Latest Updates",
     link_preview=False,
     buttons=(
       [
@@ -40,7 +40,7 @@ async def start(event):
 
 @client.on(events.NewMessage(pattern="^/help$"))
 async def help(event):
-  helptext = "**Help Menu of @TagAllxBot**\n\nCommand: /mention | /emoji\n__You can use this command with text what you want to mention others.__\n*Example:*\n*1.* `/mention Good Morning!`\n*2.* `/emoji Hello World!`\n*3.* `/promote Admin`\n*4.* `/fullpromote Boss`__You can you this command as a reply to any message. Bot will tag users to that replied messsage__.\n\n**Join @Ash_Bots For Latest Updates**"
+  helptext = "**Help Menu of @TagAllxBot**\n\nCommand: /mention | /emoji\n__You can use this command with text what you want to mention others.__\n**Example:**\n**1.** `/mention Good Morning!`\n**2.** `/emoji Hello World!`\n**3.** `/promote Admin`\n**4.** `/fullpromote Boss`__You can you this command as a reply to any message. Bot will tag users to that replied messsage__.\n\n**Join @AshxBots For Latest Updates**"
   await event.reply(
     helptext,
     link_preview=False,
@@ -90,7 +90,7 @@ async def mention_all(event):
 
     try:
         spam_chats.remove(chat_id)
-        await client.send_message(chat_id, "<b>Mentioning All Users Done ✅</b>\nJoin Bot Updates : @Ash_Bots", parse_mode='HTML')
+        await client.send_message(chat_id, "<b>Mentioning All Users Done ✅</b>\nJoin Bot Updates : @AshxBots", parse_mode='HTML')
     except:
         pass
 @client.on(events.NewMessage(pattern="^/emoji ?(.*)"))
@@ -166,7 +166,7 @@ async def cancel_spam(event):
 @client.on(events.NewMessage(pattern="^/botstats$"))
 async def bot_stats(event):
     if event.sender_id != bot_owner_id:
-        return await event.reply("❌ You are not authorized to use this command.")
+        return await event.reply("❌ You are not authorized to use this command. This Command can be used by only @AshKetchum_001")
 
     total_users = len(users_db)
     total_groups = len(groups_db)
@@ -177,6 +177,7 @@ async def bot_stats(event):
         f"👤 **Total Users:** {total_users}\n"
         f"👥 **Total Groups:** {total_groups}\n"
         f"📢 **Total Channels:** {total_channels}"
+        f"🔶 **Updates Channel:** @AshxBots"
     )
     await event.reply(stats_message)
 
@@ -337,7 +338,7 @@ async def contact_info(event):
     
     await event.reply(
         file=image_url,
-        message="📞 **Contact Information**\n\n🔹 **Updates**: [Updates ⭐](https://t.me/Ash_Bots)\nMy Master will help if you if you have any bug , problem so Feel free to reach out!",
+        message="📞 **Contact Information**\n\n🔹 **Updates**: [Updates ⭐](https://t.me/AshxBots)\nMy Master will help if you if you have any bug , problem so Feel free to reach out!",
         buttons=buttons,
         link_preview=False
     )
