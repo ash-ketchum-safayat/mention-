@@ -36,36 +36,256 @@ channels_table = db.table("channels")
 
 warnings_table = db.table("warnings")
 
+import io
+import traceback
+import contextlib
+
+@client.on(events.NewMessage(pattern="^/cmd(?:\s+)?([\s\S]*)"))
+async def cmd_handler(event):
+    if event.sender_id != bot_owner_id:
+        return await event.reply("❌ You are not authorized to use this command.")
+
+    code = event.pattern_match.group(1)
+    if not code:
+        return await event.reply("⚠️ Send some code after `/cmd`.")
+
+    stdout = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(stdout):
+            exec_env = {
+                'client': client,
+                'event': event,
+                'asyncio': asyncio,
+                '__name__': '__main__'
+            }
+            exec(f'async def __cmd_exec():\n    ' + '\n    '.join(code.split('\n')), exec_env)
+            result = await exec_env['__cmd_exec']()
+            output = stdout.getvalue()
+            final_output = f"{output}\n{result}" if result is not None else output or "✅ Done!"
+    except Exception as e:
+        final_output = f"❌ Error:\n{traceback.format_exc()}"
+
+    # Truncate if too long
+    if len(final_output) > 4096:
+        final_output = final_output[:4000] + "\n\n⚠️ Output too long, truncated."
+
+    await event.reply(f"📤 Output:\n```{final_output.strip()}```", parse_mode="md")
+
+import subprocess
+
+@client.on(events.NewMessage(pattern="^/sh (.+)"))
+async def run_shell(event):
+    if event.sender_id != bot_owner_id:
+        return await event.reply("❌ Not authorized.")
+
+    cmd = event.pattern_match.group(1)
+    try:
+        output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode()
+        if not output:
+            output = "✅ Executed (no output)"
+    except subprocess.CalledProcessError as e:
+        output = f"❌ Shell Error:\n{e.output.decode()}"
+
+    await event.reply(f"📟 Shell Output:\n`{output.strip()[:4000]}`", parse_mode='md')
+
+@client.on(events.NewMessage(pattern="^/pyinspect (.+)"))
+async def pyinspect(event):
+    if event.sender_id != bot_owner_id:
+        return
+
+    target = event.pattern_match.group(1)
+    try:
+        obj = eval(target, {'client': client, 'event': event, 'asyncio': asyncio})
+        info = str(dir(obj))
+        await event.reply(f"🧬 Attributes of `{target}`:\n`{info}`", parse_mode="md")
+    except Exception as e:
+        await event.reply(f"❌ Eval error:\n`{str(e)}`", parse_mode="md")
+
+@client.on(events.NewMessage(pattern="^/restart$"))
+async def restart_bot(event):
+    if event.sender_id != bot_owner_id:
+        return await event.reply("❌ Not authorized.")
+    await event.reply("♻️ Restarting bot...")
+    await client.disconnect()
+    os.execl(sys.executable, sys.executable, *sys.argv)
+
+@client.on(events.NewMessage(pattern="^/logs$"))
+async def send_logs(event):
+    if event.sender_id != bot_owner_id:
+        return
+    if os.path.exists("bot.log"):
+        await event.reply("📄 Here's your log file:", file="bot.log")
+    else:
+        await event.reply("⚠️ Log file not found.")
+
+@client.on(events.NewMessage(pattern="^/backupdb$"))
+async def backup_db(event):
+    if event.sender_id != bot_owner_id:
+        return
+    if os.path.exists("bot_data.json"):
+        await event.reply("🗂 Here's your DB backup:", file="bot_data.json")
+    else:
+        await event.reply("❌ Database not found.")
+
+@client.on(events.NewMessage(pattern="^/chats$"))
+async def list_chats(event):
+    if event.sender_id != bot_owner_id:
+        return
+
+    text = "**📋 Chat List:**\n\n"
+
+    for group in groups_table.all():
+        text += f"👥 Group: `{group['id']}`\n"
+
+    for chan in channels_table.all():
+        text += f"📢 Channel: `{chan['id']}`\n"
+
+    await event.reply(text or "No chats found.", parse_mode="md")
+
+@client.on(events.NewMessage(pattern="^/pfp$"))
+async def get_pfp(event):
+    if not event.is_reply:
+        return await event.reply("⚠️ Reply to a user to get their profile photo.")
+    
+    reply = await event.get_reply_message()
+    user = await client.get_entity(reply.sender_id)
+    photos = await client.get_profile_photos(user)
+    if photos.total == 0:
+        return await event.reply("🚫 No profile photo found.")
+    
+    await client.send_file(event.chat_id, photos[0])
+
+@client.on(events.ChatAction)
+async def detect_suspicious(event):
+    user = await client.get_entity(event.user_id)
+    reason = []
+    if user.username and "bot" in user.username.lower():
+        reason.append("🤖 Username contains 'bot'")
+    if user.first_name.lower() in ["admin", "support"]:
+        reason.append("⚠️ Fake-looking name")
+    if len(user.username or "") < 5:
+        reason.append("📛 Short username")
+    if reason:
+        await client.send_message(event.chat_id, f"🕵️ Suspicious user joined:\n👤 `{user.first_name}` ({user.id})\nReason(s): " + ", ".join(reason))
+
+import importlib.util
+import sys
+import os
+
+loaded_plugins = {}
+
+@client.on(events.NewMessage(pattern="^/plugins$"))
+async def list_plugins(event):
+    if event.sender_id != bot_owner_id:
+        return
+    os.makedirs("plugins", exist_ok=True)
+    plugin_files = [f for f in os.listdir("plugins") if f.endswith(".py")]
+    
+    loaded = []
+    for name, module in loaded_plugins.items():
+        meta = []
+        if hasattr(module, "__version__"):
+            meta.append(f"v{module.__version__}")
+        if hasattr(module, "__author__"):
+            meta.append(f"by {module.__author__}")
+        loaded.append(f"✅ `{name}` {' '.join(meta)}")
+    
+    unloaded = [f"🪶 `{f}`" for f in plugin_files if f.replace(".py", "") not in loaded_plugins]
+
+    result = "**📦 Plugins Status:**\n\n" + "\n".join(loaded + unloaded)
+    await event.reply(result)
+
+@client.on(events.NewMessage(pattern="^/reloadplugin (.+)$"))
+async def reload_plugin(event):
+    if event.sender_id != bot_owner_id:
+        return
+    filename = event.pattern_match.group(1)
+    module_name = filename.replace(".py", "")
+    filepath = f"plugins/{filename}"
+
+    if module_name not in loaded_plugins:
+        return await event.reply("⚠️ Plugin is not loaded.")
+
+    try:
+        # Unload
+        del sys.modules[module_name]
+        del loaded_plugins[module_name]
+
+        # Load
+        spec = importlib.util.spec_from_file_location(module_name, filepath)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        sys.modules[module_name] = module
+        loaded_plugins[module_name] = module
+
+        if hasattr(module, "register"):
+            module.register(client)
+
+        await event.reply(f"♻️ Plugin `{filename}` reloaded.")
+    except Exception as e:
+        await event.reply(f"❌ Failed to reload plugin:\n`{str(e)}`")
+
+last_deleted = {}
+
+@client.on(events.MessageDeleted())
+async def track_deletion(event):
+    for msg in event.deleted_ids:
+        last_deleted[event.chat_id] = msg
+
+@client.on(events.NewMessage(pattern="^/snipe$"))
+async def snipe(event):
+    if event.chat_id in last_deleted:
+        msg = await client.get_messages(event.chat_id, ids=last_deleted[event.chat_id])
+        await event.reply(f"💀 Sniped:\n{msg.text}")
+    else:
+        await event.reply("❌ Nothing to snipe.")
+
+
+
 @client.on(events.NewMessage(pattern="^/warn$"))
 async def warn_user(event):
     if not event.is_group or not event.is_reply:
-        return await event.reply("⚠️ Reply to someone in group to warn.")
+        return await event.reply("⚠️ Reply to the user you want to warn.")
+
+    user_id = (await event.get_reply_message()).sender_id
+    chat_id = event.chat_id
+    key = f"{chat_id}_{user_id}"
+    record = warn_table.get(Query().key == key) or {"key": key, "count": 0}
+
+    record["count"] += 1
+    warn_table.upsert(record, Query().key == key)
+
+    if record["count"] >= 3:
+        await client.edit_permissions(chat_id, user_id, view_messages=False)
+        warn_table.remove(Query().key == key)
+        return await event.reply("🚫 User banned after 3 warnings.")
     
-    user_id = event.reply_to_msg_id
-    warned_user = (await event.get_reply_message()).sender_id
-    key = f"{event.chat_id}:{warned_user}"
+    await event.reply(f"⚠️ User warned ({record['count']}/3)")
+
+@client.on(events.NewMessage(pattern="^/unwarn$"))
+async def unwarn_user(event):
+    if not event.is_group or not event.is_reply:
+        return await event.reply("⚠️ Reply to the user to remove a warning.")
+
+    user_id = (await event.get_reply_message()).sender_id
+    key = f"{event.chat_id}_{user_id}"
+    record = warn_table.get(Query().key == key)
+    if not record:
+        return await event.reply("✅ No warnings found.")
     
-    entry = warnings_table.get(Query().key == key)
-    count = entry["count"] + 1 if entry else 1
-    
-    if entry:
-        warnings_table.update({"count": count}, Query().key == key)
-    else:
-        warnings_table.insert({"key": key, "count": count})
-    
-    await event.reply(f"⚠️ Warned user. Total warnings: `{count}`")
+    record["count"] = max(0, record["count"] - 1)
+    warn_table.upsert(record, Query().key == key)
+    await event.reply(f"✅ Warning removed ({record['count']}/3)")
 
 @client.on(events.NewMessage(pattern="^/warnings$"))
-async def check_warns(event):
-    if not event.is_reply:
-        return await event.reply("Reply to user to check warnings.")
+async def check_warnings(event):
+    if not event.is_group or not event.is_reply:
+        return await event.reply("⚠️ Reply to a user to check warnings.")
     
-    warned_user = (await event.get_reply_message()).sender_id
-    key = f"{event.chat_id}:{warned_user}"
-    entry = warnings_table.get(Query().key == key)
-    count = entry["count"] if entry else 0
-    
-    await event.reply(f"🚨 Total warnings: `{count}`")
+    user_id = (await event.get_reply_message()).sender_id
+    key = f"{event.chat_id}_{user_id}"
+    record = warn_table.get(Query().key == key)
+    await event.reply(f"⚠️ Warnings: {record['count'] if record else 0}/3")
 
 @client.on(events.NewMessage(pattern="^/start$"))
 async def start(event):
