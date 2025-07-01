@@ -331,7 +331,7 @@ async def full_promote(event):
 
 @client.on(events.NewMessage(pattern="^/(contact|owner|about|support)$"))
 async def contact_info(event):
-    image_url = "https://files.catbox.moe/vhami2.jpg"
+    image_url = "https://files.catbox.moe/4xwtlr.jpg"
     buttons = [
             Button.url("Developer ❤️", "https://t.me/AshKetchum_001")
     ]
