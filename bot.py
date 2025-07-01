@@ -184,10 +184,10 @@ async def broadcast(event):
             failed_channels += 1
 
     report = (
-        "**✅ Broadcast Summary ✅**\n\n"
-        f"👤 Users: ✅ `{sent_users}` / ❌ `{failed_users}`\n"
-        f"👥 Groups: ✅ `{sent_groups}` / ❌ `{failed_groups}`\n"
-        f"📢 Channels: ✅ `{sent_channels}` / ❌ `{failed_channels}`"
+        "**🔶 Broadcast Summary **\n\n"
+        f"👤 Users: `{sent_users}` / `{failed_users}`\n"
+        f"👥 Groups: `{sent_groups}` / `{failed_groups}`\n"
+        f"📢 Channels: `{sent_channels}` / `{failed_channels}`"
     )
     await event.reply(report)
 
