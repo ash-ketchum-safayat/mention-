@@ -7,8 +7,6 @@ from telethon.tl.functions.channels import GetParticipantRequest, EditAdminReque
 from telethon.errors import UserNotParticipantError
 from telethon.tl.types import ChatAdminRights, PeerUser
 from tinydb import TinyDB, Query
-import openai
-openai.api_key = "your_openai_api_key"
 
 # === Logging ===
 logging.basicConfig(level=logging.INFO, format='%(name)s - [%(levelname)s] - %(message)s')
@@ -35,6 +33,18 @@ channels_table = db.table("channels")
 # === Commands ===
 
 warnings_table = db.table("warnings")
+
+import requests
+
+@client.on(events.NewMessage(pattern="^/pic (.+)"))
+async def get_unsplash_image(event):
+    query = event.pattern_match.group(1)
+    try:
+        # Unsplash Source API (no API key needed)
+        img_url = f"https://source.unsplash.com/1600x900/?{query}"
+        await client.send_file(event.chat_id, img_url, caption=f"🖼 Unsplash Image for: `{query}`", link_preview=False)
+    except Exception as e:
+        await event.reply(f"❌ Failed to fetch image:\n`{str(e)}`")
 
 import qrcode
 from io import BytesIO
