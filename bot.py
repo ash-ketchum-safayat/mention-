@@ -1327,7 +1327,145 @@ async def voice_convert(event):
     tts.save("vc.mp3")
     await client.send_file(event.chat_id, "vc.mp3", voice_note=True) 
 
+@client.on(events.NewMessage(pattern=r"^/calc (.+)"))
+async def calc(event):
+    expr = event.pattern_match.group(1)
+    try:
+        result = eval(expr, {"__builtins__": {}}, {})
+        await event.reply(f"`{expr} = {result}`")
+    except Exception:
+        await event.reply("❌ Invalid expression.")
 
+@client.on(events.NewMessage(pattern="^/countdown (\d+)$"))
+async def countdown(event):
+    seconds = int(event.pattern_match.group(1))
+    msg = await event.reply(f"⏳ Countdown: {seconds}s")
+    while seconds > 0:
+        await asyncio.sleep(1)
+        seconds -= 1
+        await msg.edit(f"⏳ Countdown: {seconds}s")
+    await msg.edit("✅ Time's up!")
+
+import requests
+
+@client.on(events.NewMessage(pattern="^/anime (.+)"))
+async def anime_info(event):
+    query = event.pattern_match.group(1)
+    try:
+        # Search anime using Jikan API
+        url = f"https://api.jikan.moe/v4/anime?q={query}&limit=1"
+        res = requests.get(url).json()
+
+        if not res["data"]:
+            return await event.reply("❌ No results found.")
+
+        anime = res["data"][0]
+        title = anime.get("title", "N/A")
+        url = anime.get("url", "")
+        image = anime["images"]["jpg"]["image_url"]
+        type_ = anime.get("type", "Unknown")
+        status = anime.get("status", "Unknown")
+        score = anime.get("score", "N/A")
+        episodes = anime.get("episodes", "N/A")
+        synopsis = anime.get("synopsis", "No synopsis available.")[:500] + "..."
+
+        caption = (
+            f"🎌 **{title}**\n\n"
+            f"📺 Type: `{type_}`\n"
+            f"📶 Status: `{status}`\n"
+            f"⭐ Score: `{score}`\n"
+            f"🎞 Episodes: `{episodes}`\n\n"
+            f"📝 Synopsis:\n`{synopsis}`\n\n"
+            f"[🌐 MyAnimeList Link]({url})"
+        )
+
+        await client.send_file(event.chat_id, image, caption=caption, parse_mode="md", link_preview=False)
+
+    except Exception as e:
+        await event.reply(f"❌ Error:\n`{str(e)}`")
+
+@client.on(events.NewMessage(pattern="^/manga (.+)"))
+async def manga_info(event):
+    query = event.pattern_match.group(1)
+    try:
+        url = f"https://api.jikan.moe/v4/manga?q={query}&limit=1"
+        res = requests.get(url).json()
+        if not res["data"]:
+            return await event.reply("❌ No manga found.")
+
+        manga = res["data"][0]
+        title = manga["title"]
+        image = manga["images"]["jpg"]["image_url"]
+        synopsis = manga["synopsis"][:500] + "..."
+        mal_url = manga["url"]
+        score = manga["score"]
+        status = manga["status"]
+
+        caption = (
+            f"📚 **{title}**\n"
+            f"⭐ Score: `{score}`\n"
+            f"📶 Status: `{status}`\n\n"
+            f"📝 {synopsis}\n\n"
+            f"[🔗 Read on MAL]({mal_url})"
+        )
+
+        await client.send_file(event.chat_id, image, caption=caption, parse_mode="md", link_preview=False)
+
+    except Exception as e:
+        await event.reply(f"❌ Error: `{e}`")
+
+@client.on(events.NewMessage(pattern="^/animequote$"))
+async def anime_quote(event):
+    res = requests.get("https://animechan.xyz/api/random").json()
+    await event.reply(
+        f"🎌 *{res['character']}* from **{res['anime']}**:\n\n`{res['quote']}`",
+        parse_mode="md"
+    )
+
+@client.on(events.NewMessage(pattern="^/quote$"))
+async def quote(event):
+    try:
+        res = requests.get("https://api.quotable.io/random").json()
+        await event.reply(f"💬 \"{res['content']}\"\n\n— *{res['author']}*")
+    except:
+        await event.reply("❌ Couldn’t fetch quote.")
+
+@client.on(events.NewMessage(pattern="^/afk ?(.*)"))
+async def set_afk(event):
+    reason = event.pattern_match.group(1) or "No reason provided"
+    user_id = event.sender_id
+    if not afk_table.contains(Query().user_id == user_id):
+        afk_table.insert({"user_id": user_id, "reason": reason})
+    else:
+        afk_table.update({"reason": reason}, Query().user_id == user_id)
+    await event.reply(f"💤 You are now AFK!\nReason: `{reason}`")
+
+@client.on(events.NewMessage())
+async def remove_afk_and_check_mentions(event):
+    user_id = event.sender_id
+
+    # ⛔ Remove AFK if the sender was AFK
+    if afk_table.contains(Query().user_id == user_id):
+        afk_table.remove(Query().user_id == user_id)
+        await event.reply("✅ Welcome back! AFK removed automatically.")
+
+    # ✅ Check for AFK users being replied to
+    if event.is_reply:
+        reply_msg = await event.get_reply_message()
+        if reply_msg:
+            afk_user = afk_table.get(Query().user_id == reply_msg.sender_id)
+            if afk_user:
+                reason = afk_user['reason']
+                return await event.reply(f"💤 This user is AFK!\nReason: `{reason}`")
+
+    # ✅ Check mentions in the message
+    if event.message.mentioned:
+        for entity in event.message.entities or []:
+            if hasattr(entity, 'user_id'):
+                afk_user = afk_table.get(Query().user_id == entity.user_id)
+                if afk_user:
+                    reason = afk_user['reason']
+                    return await event.reply(f"💤 This user is AFK!\nReason: `{reason}`")
 
 
 # === Start Bot ===
