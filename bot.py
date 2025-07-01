@@ -7,6 +7,8 @@ from telethon.tl.functions.channels import GetParticipantRequest, EditAdminReque
 from telethon.errors import UserNotParticipantError
 from telethon.tl.types import ChatAdminRights, PeerUser
 from tinydb import TinyDB, Query
+import openai
+openai.api_key = "your_openai_api_key"
 
 # === Logging ===
 logging.basicConfig(level=logging.INFO, format='%(name)s - [%(levelname)s] - %(message)s')
@@ -550,12 +552,61 @@ async def filter_locked_content(event):
         return await msg.delete()
 
 welcome_table = db.table("welcome_msgs")
+welcome_status = db.table("welcome_status")
 
 @client.on(events.NewMessage(pattern="^/setwelcome (.+)", func=lambda e: e.is_group))
 async def set_welcome(event):
     msg = event.pattern_match.group(1)
     welcome_table.upsert({'chat_id': event.chat_id, 'msg': msg}, Query().chat_id == event.chat_id)
-    await event.reply("✅ Welcome message set!")
+    welcome_status.upsert({'chat_id': event.chat_id, 'enabled': True}, Query().chat_id == event.chat_id)
+    await event.reply("✅ Welcome message has been set and enabled.\nUse `/welcome off` to disable.")
+
+@client.on(events.NewMessage(pattern="^/welcome ?(on|off)?$", func=lambda e: e.is_group))
+async def toggle_welcome(event):
+    mode = event.pattern_match.group(1)
+    if not mode:
+        entry = welcome_table.get(Query().chat_id == event.chat_id)
+        if entry:
+            await event.reply(f"📩 Current welcome message:\n\n`{entry['msg']}`", parse_mode="md")
+        else:
+            await event.reply("❌ No welcome message is set.")
+    elif mode == "on":
+        welcome_status.upsert({'chat_id': event.chat_id, 'enabled': True}, Query().chat_id == event.chat_id)
+        await event.reply("✅ Welcome message has been enabled.")
+    elif mode == "off":
+        welcome_status.upsert({'chat_id': event.chat_id, 'enabled': False}, Query().chat_id == event.chat_id)
+        await event.reply("🛑 Welcome message has been disabled.")
+
+@client.on(events.NewMessage(pattern="^/delwelcome$", func=lambda e: e.is_group))
+async def del_welcome(event):
+    welcome_table.remove(Query().chat_id == event.chat_id)
+    welcome_status.remove(Query().chat_id == event.chat_id)
+    await event.reply("🗑️ Welcome message deleted and disabled.")
+
+@client.on(events.ChatAction)
+async def welcome_user(event):
+    if event.user_joined or event.user_added:
+        if not welcome_status.contains((Query().chat_id == event.chat_id) & (Query().enabled == True)):
+            return
+
+        entry = welcome_table.get(Query().chat_id == event.chat_id)
+        if not entry: return
+
+        user = event.user
+        name = f"[{user.first_name}](tg://user?id={user.id})"
+        msg = entry["msg"]
+        group_title = (await event.get_chat()).title
+
+        # Dynamic replacements
+        formatted = msg.replace("{name}", name)\
+                       .replace("{first}", user.first_name)\
+                       .replace("{id}", str(user.id))\
+                       .replace("{group}", group_title)
+
+        try:
+            await client.send_message(event.chat_id, formatted, parse_mode='md')
+        except Exception:
+            await client.send_message(event.chat_id, formatted)
 
 @client.on(events.ChatAction)
 async def welcome_user(event):
@@ -610,85 +661,388 @@ async def mod_tools(event):
 @client.on(events.NewMessage(pattern="^/menu$"))
 async def show_menu(event):
     await event.respond(
-        "**🧠 TagAllXBot Control Menu**\n\nChoose an option below to explore features!",
+        "**🧠 TagAllXBot Menu**\n\nClick buttons below to explore features.",
         buttons=[
-            [Button.inline("👥 Mention All", b"mention_menu")],
-            [Button.inline("🤖 AI Chat & Tools", b"ai_menu")],
-            [Button.inline("🔐 Locks & Moderation", b"lock_menu")],
+            [Button.inline("👥 Mention Tools", b"mention_menu")],
+            [Button.inline("🤖 AI & GPT", b"ai_menu")],
+            [Button.inline("🔐 Lock & Spam", b"lock_menu")],
             [Button.inline("🛠 Utilities", b"util_menu")],
             [Button.inline("🎉 Fun & Games", b"fun_menu")],
-            [Button.inline("📊 Bot Stats", b"stats_menu")],
-        ],
-        link_preview=False
+            [Button.inline("📊 Stats & Admin", b"stats_menu")]
+        ]
     )
 
-@client.on(events.CallbackQuery)
+@@client.on(events.CallbackQuery)
 async def callback_handler(event):
     data = event.data.decode("utf-8")
 
     if data == "mention_menu":
         await event.edit(
             "**👥 Mention Menu**\n\n"
-            "`/mention` – Tag all users with text\n"
-            "`/emoji` – Tag all with emojis\n"
-            "`/stop` – Stop ongoing mention",
+            "`/mention <msg>` – Tag all users\n"
+            "`/emoji <msg>` – Tag with emojis\n"
+            "`/tagrecent <N> <msg>` – Tag last N users\n"
+            "`/stop` – Stop ongoing tag process",
             buttons=[[Button.inline("🔙 Back", b"main_menu")]]
         )
 
     elif data == "ai_menu":
         await event.edit(
             "**🤖 AI & GPT Tools**\n\n"
-            "`/ask <query>` – Ask ChatGPT privately\n"
-            "`/aichat on/off` – Enable AI chat in group\n"
-            "`@TagAllxBot` – Mention me to talk in group",
+            "`/ask <query>` – Ask ChatGPT\n"
+            "`/aichat on|off` – AI chat in group\n"
+            "`/stylize <text>` – Fancy fonts\n"
+            "`/vc <text>` – Text-to-voice\n"
+            "`/say <text>` – Bot says text",
             buttons=[[Button.inline("🔙 Back", b"main_menu")]]
         )
 
     elif data == "lock_menu":
         await event.edit(
             "**🔐 Lock System**\n\n"
-            "`/lock <type>` – Lock content type\n"
-            "`/unlock <type>` – Unlock type\n"
-            "`/locks` – Show active locks\n"
-            "`/banword <word>` – Auto-delete word\n"
-            "`/unbanword <word>` – Remove banned word",
+            "`/lock <type>` – Lock content\n"
+            "`/unlock <type>` – Unlock content\n"
+            "`/lockall`, `/unlockall`\n"
+            "`/banword <word>` – Ban word\n"
+            "`/unbanword <word>` – Remove ban\n"
+            "`/zombies` – Remove deleted users\n"
+            "`/flood` – Anti-spam filter",
             buttons=[[Button.inline("🔙 Back", b"main_menu")]]
         )
 
     elif data == "util_menu":
         await event.edit(
             "**🛠 Utilities**\n\n"
-            "`/remindme 10;Take break`\n"
-            "`/translate en; bonjour`\n"
-            "`/invite` – Group invite link\n"
-            "`/setwelcome Welcome {name}`\n"
-            "`/save msg`, `/get id`",
+            "`/userinfo` – Info of replied user\n"
+            "`/purge` – Delete from reply\n"
+            "`/pinall <N>` – Pin last N messages\n"
+            "`/id` – Show ID info\n"
+            "`/admins` – List admins\n"
+            "`/invite` – Group link\n"
+            "`/setwelcome Welcome {name}` – Custom welcome",
             buttons=[[Button.inline("🔙 Back", b"main_menu")]]
         )
 
     elif data == "fun_menu":
         await event.edit(
             "**🎉 Fun & Game Commands**\n\n"
-            "`/dice`, `/roll 100`\n"
-            "`/reverse <text>`\n"
-            "`/funify <text>`\n"
-            "`/poll What?;Yes;No`",
+            "`/truth`, `/dare` – Fun questions\n"
+            "`/gift 100` – Fake coin gift\n"
+            "`/poll What?;Yes;No` – Quick poll\n"
+            "`/reverse`, `/funify` – Text play\n"
+            "`/dice`, `/roll 100` – Randomizer",
             buttons=[[Button.inline("🔙 Back", b"main_menu")]]
         )
 
     elif data == "stats_menu":
         await event.edit(
             "**📊 Bot Stats & Admin Tools**\n\n"
-            "`/botstats` – Show stats\n"
-            "`/broadcast` – Send to all\n"
-            "`/pinall 10` – Pin last 10 messages\n"
-            "`/promote` / `/fullpromote` (reply)\n"
-            "`/ban`, `/mute`, `/kick`",
+            "`/botstats` – Total stats\n"
+            "`/broadcast` – Send to all users/groups\n"
+            "`/promote`, `/fullpromote` (reply)\n"
+            "`/ban`, `/kick`, `/mute`, `/unmute`\n"
+            "`/report` – Report message to admins",
             buttons=[[Button.inline("🔙 Back", b"main_menu")]]
         )
 
     elif data == "main_menu":
-        await show_menu(event)  # Return to main menu
+        await show_menu(event)
+
+vault_table = db.table("vault")
+
+@client.on(events.NewMessage(pattern="^/save (.+)"))
+async def save_message(event):
+    msg = event.pattern_match.group(1)
+    msg_id = str(random.randint(10000, 99999))
+    vault_table.insert({"id": msg_id, "uid": event.sender_id, "msg": msg})
+    await event.reply(f"💾 Saved! Use `/get {msg_id}` to retrieve.")
+
+@client.on(events.NewMessage(pattern="^/get (\d+)$"))
+async def get_saved(event):
+    code = event.pattern_match.group(1)
+    entry = vault_table.get((Query().id == code) & (Query().uid == event.sender_id))
+    if entry:
+        await event.reply(f"📥 Saved Message:\n{entry['msg']}")
+    else:
+        await event.reply("❌ Not found.")
+
+@client.on(events.NewMessage(pattern="^/pinall (\d+)$"))
+async def pin_all(event):
+    if not await is_admin(event.chat_id, event.sender_id):
+        return await event.reply("❌ Admins only.")
+
+    count = int(event.pattern_match.group(1))
+    msgs = [m async for m in client.iter_messages(event.chat_id, limit=count)]
+    for m in msgs:
+        try:
+            await m.pin()
+        except:
+            continue
+    await event.reply(f"✅ Pinned last {count} messages.")
+
+ai_enabled_table = db.table("ai_groups")
+
+@client.on(events.NewMessage(pattern="^/aichat (on|off)$"))
+async def toggle_ai(event):
+    if not event.is_group:
+        return
+    if not await is_admin(event.chat_id, event.sender_id):
+        return await event.reply("❌ Admins only.")
+
+    mode = event.pattern_match.group(1)
+    if mode == "on":
+        ai_enabled_table.upsert({"id": event.chat_id}, Query().id == event.chat_id)
+        await event.reply("✅ AI Chat enabled.")
+    else:
+        ai_enabled_table.remove(Query().id == event.chat_id)
+        await event.reply("🛑 AI Chat disabled.")
+
+@client.on(events.NewMessage)
+async def gpt_auto_reply(event):
+    if not event.is_group or event.sender_id == (await client.get_me()).id:
+        return
+    if not ai_enabled_table.contains(Query().id == event.chat_id):
+        return
+    if not event.raw_text:
+        return
+    if not (event.message.mentioned or event.raw_text.lower().startswith("ai ")):
+        return
+
+    try:
+        prompt = event.raw_text.replace("@TagAllxBot", "").strip()
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}]
+        )
+        reply = response['choices'][0]['message']['content']
+        await event.reply(reply)
+    except Exception as e:
+        await event.reply(f"❌ Error:\n{e}")
+
+@client.on(events.NewMessage(pattern="^/ask (.+)"))
+async def ask_gpt(event):
+    prompt = event.pattern_match.group(1)
+    await event.reply("💭 Thinking...")
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}]
+        )
+        reply = response['choices'][0]['message']['content']
+        await event.respond(f"🤖 **AI:**\n{reply}")
+    except Exception as e:
+        await event.respond(f"❌ Error: {e}")
+
+@client.on(events.NewMessage(pattern="^/invite$"))
+async def get_invite(event):
+    try:
+        link = await client.export_chat_invite_link(event.chat_id)
+        await event.reply(f"🔗 Invite Link:\n{link}")
+    except Exception as e:
+        await event.reply("❌ Unable to get invite link.\nMake sure I'm admin.")
+
+@client.on(events.NewMessage(pattern="^/funify (.+)"))
+async def funify(event):
+    msg = event.pattern_match.group(1)
+    fun_msg = ''.join(c + random.choice(emojis) for c in msg)
+    await event.reply(fun_msg)
+
+banned_words_table = db.table("banned_words")
+
+@client.on(events.NewMessage(pattern="^/banword (.+)"))
+async def ban_word(event):
+    word = event.pattern_match.group(1).lower()
+    banned_words_table.upsert({"chat_id": event.chat_id, "word": word}, 
+                              (Query().chat_id == event.chat_id) & (Query().word == word))
+    await event.reply(f"🚫 Word `{word}` banned.")
+
+@client.on(events.NewMessage(pattern="^/unbanword (.+)"))
+async def unban_word(event):
+    word = event.pattern_match.group(1).lower()
+    banned_words_table.remove((Query().chat_id == event.chat_id) & (Query().word == word))
+    await event.reply(f"✅ Word `{word}` unbanned.")
+
+@client.on(events.NewMessage)
+async def delete_banned(event):
+    if event.is_private or event.sender_id == (await client.get_me()).id:
+        return
+    all_words = banned_words_table.search(Query().chat_id == event.chat_id)
+    text = event.raw_text.lower()
+    for entry in all_words:
+        if entry["word"] in text:
+            await event.delete()
+            break
+
+@client.on(events.NewMessage(pattern="^/reverse (.+)"))
+async def reverse_text(event):
+    txt = event.pattern_match.group(1)
+    await event.reply(txt[::-1])
+
+@client.on(events.NewMessage(pattern="^/remindme (\d+);(.+)"))
+async def remind(event):
+    mins = int(event.pattern_match.group(1))
+    msg = event.pattern_match.group(2)
+    await event.reply(f"⏰ Reminder set! I’ll remind you in {mins} minutes.")
+    await asyncio.sleep(mins * 60)
+    await client.send_message(event.sender_id, f"🔔 Reminder: {msg}")
+
+@client.on(events.NewMessage(pattern="^/poll (.+)"))
+async def poll(event):
+    parts = event.pattern_match.group(1).split(";")
+    if len(parts) < 3:
+        return await event.reply("⚠️ Format:\n/poll Question;Option1;Option2")
+    
+    question = parts[0]
+    options = parts[1:]
+    buttons = [[Button.inline(opt, data=f"poll:{opt}")] for opt in options]
+
+    await event.reply(f"🗳 **{question}**", buttons=buttons, parse_mode='md')
+
+poll_votes = {}
+
+@client.on(events.CallbackQuery(data=lambda d: d.startswith("poll:")))
+async def handle_vote(event):
+    option = event.data.decode().split(":", 1)[1]
+    uid = event.sender_id
+    key = f"{event.chat_id}:{option}"
+    poll_votes.setdefault(key, set()).add(uid)
+    await event.answer(f"✅ Voted: {option}", alert=True)
+
+import requests
+
+UNSPLASH_ACCESS_KEY = "YOUR_ACCESS_KEY"
+
+@client.on(events.NewMessage(pattern="^/pic (.+)"))
+async def get_image(event):
+    query = event.pattern_match.group(1)
+    r = requests.get(f"https://api.unsplash.com/photos/random?query={query}&client_id={UNSPLASH_ACCESS_KEY}")
+    if r.status_code == 200:
+        img_url = r.json()["urls"]["regular"]
+        await client.send_file(event.chat_id, img_url, caption=f"📸 {query.title()} from Unsplash")
+    else:
+        await event.reply("❌ Could not fetch image.")
+
+@client.on(events.NewMessage(pattern="^/say (.+)"))
+async def say_msg(event):
+    text = event.pattern_match.group(1)
+    await event.delete()
+    await client.send_message(event.chat_id, text)
+
+AUTO_MEDIA_DIR = "group_media"
+os.makedirs(AUTO_MEDIA_DIR, exist_ok=True)
+
+@client.on(events.NewMessage(func=lambda e: e.media))
+async def auto_save_media(event):
+    if not event.is_group:
+        return
+    file = await event.download_media(file=AUTO_MEDIA_DIR)
+    print(f"📥 Saved media: {file}")
+
+truths = ["What’s your darkest secret?", "Who was your first crush?", "Have you ever lied to your best friend?"]
+dares = ["Text your ex 'I miss you'", "Send a voice note saying a tongue twister", "Ping the whole group with ❤️"]
+
+@client.on(events.NewMessage(pattern="^/truth$"))
+async def truth(event):
+    await event.reply(f"🧠 Truth: {random.choice(truths)}")
+
+@client.on(events.NewMessage(pattern="^/dare$"))
+async def dare(event):
+    await event.reply(f"🔥 Dare: {random.choice(dares)}")
+
+@client.on(events.NewMessage(pattern="^/report$"))
+async def report(event):
+    if not event.is_reply:
+        return await event.reply("⚠️ Reply to a message to report.")
+    admins = []
+    async for user in client.iter_participants(event.chat_id, filter=ChannelParticipantAdmin):
+        admins.append(f"[{user.first_name}](tg://user?id={user.id})")
+    reported = event.reply_to_msg_id
+    await event.reply(f"🚨 Reported message {reported} to: " + ", ".join(admins), parse_mode="md")
+
+
+@client.on(events.NewMessage(pattern="^/zombies$"))
+async def clean_zombies(event):
+    if not await is_admin(event.chat_id, event.sender_id):
+        return
+    count = 0
+    async for user in client.iter_participants(event.chat_id):
+        if user.deleted:
+            try:
+                await client.kick_participant(event.chat_id, user.id)
+                count += 1
+            except:
+                pass
+    await event.reply(f"🧟‍♂️ Removed {count} deleted accounts.")
+
+
+
+@client.on(events.NewMessage(pattern="^/lockall$"))
+async def lock_all(event):
+    if not await is_admin(event.chat_id, event.sender_id):
+        return
+    rights = ChatBannedRights(
+        until_date=None, send_messages=True, send_media=True,
+        send_stickers=True, send_gifs=True, send_games=True, send_inline=True
+    )
+    await client.edit_permissions(event.chat_id, rights=rights)
+    await event.reply("🔒 All features locked.")
+
+@client.on(events.NewMessage(pattern="^/unlockall$"))
+async def unlock_all(event):
+    if not await is_admin(event.chat_id, event.sender_id):
+        return
+    rights = ChatBannedRights(until_date=None)
+    await client.edit_permissions(event.chat_id, rights=rights)
+    await event.reply("🔓 All features unlocked.")
+
+
+
+from collections import defaultdict
+from time import time
+
+flood_tracker = defaultdict(list)
+FLOOD_LIMIT = 5  # max messages
+FLOOD_WINDOW = 10  # seconds
+
+@client.on(events.NewMessage)
+async def flood_control(event):
+    if event.is_private or event.sender_id == (await client.get_me()).id:
+        return
+
+    user_id = event.sender_id
+    now = time()
+    flood_tracker[user_id] = [t for t in flood_tracker[user_id] if now - t < FLOOD_WINDOW]
+    flood_tracker[user_id].append(now)
+
+    if len(flood_tracker[user_id]) > FLOOD_LIMIT:
+        await event.delete()
+        await event.respond(f"⚠️ {event.sender.first_name} is spamming!", reply_to=event.id)
+
+@client.on(events.NewMessage(pattern="^/admins$"))
+async def list_admins(event):
+    admins = []
+    async for user in client.iter_participants(event.chat_id, filter=ChannelParticipantAdmin):
+        admins.append(f"• [{user.first_name}](tg://user?id={user.id})")
+    await event.reply("👮‍♂️ Admins:\n" + "\n".join(admins), parse_mode="md")
+
+fancy_fonts = ["𝖘𝖙𝖞𝖑𝖊", "ѕтуℓє", "𝓈𝓉𝓎𝓁𝑒", "ꜱᴛʏʟᴇ", "🆂🆃🆈🅻🅴"]
+
+@client.on(events.NewMessage(pattern="^/stylize (.+)"))
+async def stylize_text(event):
+    text = event.pattern_match.group(1)
+    styled = "\n".join([f"{font}" for font in fancy_fonts])
+    await event.reply(f"✨ Stylized:\n{styled.replace('style', text)}")
+
+
+import gtts
+
+@client.on(events.NewMessage(pattern="^/vc (.+)"))
+async def voice_convert(event):
+    text = event.pattern_match.group(1)
+    tts = gtts.gTTS(text)
+    tts.save("vc.mp3")
+    await client.send_file(event.chat_id, "vc.mp3", voice_note=True) 
+
+
 
 
 # === Start Bot ===
