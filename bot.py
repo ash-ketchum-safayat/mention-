@@ -34,6 +34,10 @@ channels_table = db.table("channels")
 
 @client.on(events.NewMessage(pattern="^/start$"))
 async def start(event):
+    user_id = event.sender_id
+    if not users_table.contains(Query().id == user_id):
+        users_table.insert({"id": user_id})
+
     await client.send_message(
         event.chat_id,
         "__I'm @TagallxBot Bot, I can mention almost all members in group or channel 👻\nClick `/help` for more information__\n\nJoin @AshxBots For Latest Updates",
@@ -150,32 +154,42 @@ async def broadcast(event):
     failed_users = failed_groups = failed_channels = 0
 
     for user in users_table.all():
+        user_id = user.get("id")
+        if not user_id: continue
         try:
-            await client.send_message(int(user["id"]), message)
+            await client.send_message(int(user_id), message)
             sent_users += 1
-        except:
+        except Exception as e:
+            LOGGER.warning(f"Failed to send to user {user_id}: {e}")
             failed_users += 1
 
     for group in groups_table.all():
+        group_id = group.get("id")
+        if not group_id: continue
         try:
-            await client.send_message(int(group["id"]), message)
+            await client.send_message(int(group_id), message)
             sent_groups += 1
-        except:
+        except Exception as e:
+            LOGGER.warning(f"Failed to send to group {group_id}: {e}")
             failed_groups += 1
 
     for channel in channels_table.all():
+        channel_id = channel.get("id")
+        if not channel_id: continue
         try:
-            await client.send_message(int(channel["id"]), message)
+            await client.send_message(int(channel_id), message)
             sent_channels += 1
-        except:
+        except Exception as e:
+            LOGGER.warning(f"Failed to send to channel {channel_id}: {e}")
             failed_channels += 1
 
-    await event.reply(
-        f"**✅ Broadcast Summary ✅**\n\n"
-        f"👤 Users: `{sent_users}` / ❌ `{failed_users}`\n"
-        f"👥 Groups: `{sent_groups}` / ❌ `{failed_groups}`\n"
-        f"📢 Channels: `{sent_channels}` / ❌ `{failed_channels}`"
+    report = (
+        "**✅ Broadcast Summary ✅**\n\n"
+        f"👤 Users: ✅ `{sent_users}` / ❌ `{failed_users}`\n"
+        f"👥 Groups: ✅ `{sent_groups}` / ❌ `{failed_groups}`\n"
+        f"📢 Channels: ✅ `{sent_channels}` / ❌ `{failed_channels}`"
     )
+    await event.reply(report)
 
 @client.on(events.NewMessage(pattern="^/botstats$"))
 async def bot_stats(event):
