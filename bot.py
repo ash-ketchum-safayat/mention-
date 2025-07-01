@@ -1103,40 +1103,7 @@ async def toggle_ai(event):
         ai_enabled_table.remove(Query().id == event.chat_id)
         await event.reply("🛑 AI Chat disabled.")
 
-@client.on(events.NewMessage)
-async def gpt_auto_reply(event):
-    if not event.is_group or event.sender_id == (await client.get_me()).id:
-        return
-    if not ai_enabled_table.contains(Query().id == event.chat_id):
-        return
-    if not event.raw_text:
-        return
-    if not (event.message.mentioned or event.raw_text.lower().startswith("ai ")):
-        return
-
-    try:
-        prompt = event.raw_text.replace("@TagAllxBot", "").strip()
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}]
-        )
-        reply = response['choices'][0]['message']['content']
-        await event.reply(reply)
-    except Exception as e:
-        await event.reply(f"❌ Error:\n{e}")
-
-@client.on(events.NewMessage(pattern="^/ask (.+)"))
-async def ask_gpt(event):
-    prompt = event.pattern_match.group(1)
-    await event.reply("💭 Thinking...")
-
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}]
-        )
-        reply = response['choices'][0]['message']['content']
-        await event.respond(f"🤖 **AI:**\n{reply}")
-    except Exception as e:
-        await event.respond(f"❌ Error: {e}")
+@
 
 @client.on(events.NewMessage(pattern="^/invite$"))
 async def get_invite(event):
