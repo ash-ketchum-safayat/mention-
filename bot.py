@@ -976,7 +976,9 @@ async def mod_tools(event):
 
 @client.on(events.NewMessage(pattern="^/menu$"))
 async def show_menu(event):
-    await event.respond(
+    await event.delete()  # delete the /menu command itself
+    await client.send_message(
+        event.chat_id,
         "**🧠 TagAllXBot Menu**\n\nClick buttons below to explore features.",
         buttons=[
             [Button.inline("👥 Mention Tools", b"mention_menu")],
