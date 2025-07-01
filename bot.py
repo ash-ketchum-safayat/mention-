@@ -70,16 +70,53 @@ async def check_warns(event):
 @client.on(events.NewMessage(pattern="^/start$"))
 async def start(event):
     user_id = event.sender_id
-    if not users_table.contains(Query().id == user_id):
-        users_table.insert({"id": user_id})
+    chat = await event.get_chat()
 
-    await client.send_message(
-        event.chat_id,
-        "__I'm @TagallxBot Bot, I can mention almost all members in group or channel 👻\nClick `/help` for more information__\n\nJoin @AshxBots For Latest Updates",
-        link_preview=False,
-        buttons=[[Button.url('📦 Owner', 'https://t.me/AshKetchum_001')]]
-    )
+    # ⏱ Uptime Calculation
+    uptime_seconds = int(time.time() - bot_start_time)
+    uptime = str(datetime.timedelta(seconds=uptime_seconds))
 
+    # 👤 Private Chat (DM)
+    if event.is_private:
+        if not users_table.contains(Query().id == user_id):
+            users_table.insert({"id": user_id})
+
+        welcome_text = (
+            f"👋 **Welcome, [{event.sender.first_name}](tg://user?id={user_id})!**\n\n"
+            "I'm **TagAllXBot**, your all-in-one group assistant 🤖\n\n"
+            "**🔧 Main Features:**\n"
+            "• 👥 Mention Everyone\n"
+            "• 🤖 ChatGPT & AI Tools\n"
+            "• 🔐 Lock + Anti-Spam System\n"
+            "• 🛠 Admin Utilities\n"
+            "• 🎉 Games, Polls & More!\n\n"
+            "✨ Tap a button below to get started!"
+        )
+
+        await client.send_message(
+            event.chat_id,
+            welcome_text,
+            file="https://telegra.ph/file/e9c688ff02597d6f8b9cb.jpg",  # Optional banner
+            buttons=[
+                [Button.inline("✨ Open Menu", b"main_menu")],
+                [Button.url("➕ Add Me to Group", f"https://t.me/{(await client.get_me()).username}?startgroup=true")],
+                [
+                    Button.url("📢 Updates Channel", "https://t.me/AshxBots"),
+                    Button.url("👤 Contact Owner", "https://t.me/AshKetchum_001")
+                ]
+            ],
+            parse_mode="md",
+            link_preview=False
+        )
+
+    # 👥 In a group or channel
+    else:
+        await event.reply(
+            f"✅ **Bot is Online!**\n"
+            f"⏱ **Uptime:** `{uptime}`\n"
+            f"📦 **Name:** `{(await client.get_me()).first_name}`",
+            parse_mode="md"
+        )
 @client.on(events.NewMessage(pattern="^/help$"))
 async def help(event):
     await event.reply(
