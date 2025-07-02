@@ -55,17 +55,23 @@ bot_start_time = time.time()
 
 # === TinyDB ===
 
+import os
 import json
 
-# Repair if file is just a list
-try:
-    with open("bot_data.json") as f:
-        data = json.load(f)
-        if isinstance(data, list):
-            raise ValueError("Invalid DB structure")
-except:
-    with open("bot_data.json", "w") as f:
-        f.write('{"_default": {}, "users": [], "groups": [], "channels": [], "afk": []}')
+def fix_tinydb(file):
+    if not os.path.exists(file):
+        return
+    with open(file) as f:
+        try:
+            data = json.load(f)
+        except json.JSONDecodeError:
+            data = {}
+    if isinstance(data, list) or not isinstance(data, dict):
+        print("❌ Corrupted TinyDB file. Resetting...")
+        with open(file, "w") as f:
+            f.write('{"_default": {}, "users": {}, "groups": {}, "channels": {}, "afk": {}}')
+
+fix_tinydb("bot_data.json")
 # === Commands ===
 db = TinyDB("bot_data.json")
 users_table = db.table("users")
