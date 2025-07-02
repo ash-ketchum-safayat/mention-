@@ -105,7 +105,7 @@ async def cmd_handler(event):
 
     await event.reply(f"📤 Output:\n```{final_output.strip()}```", parse_mode="md")
 
-import cv2
+
 
 
 
