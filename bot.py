@@ -15,7 +15,7 @@ LOGGER = logging.getLogger(__name__)
 # === Config ===
 api_id = 4226067
 api_hash = "2d01711f0566de2309b633f49542e7e2"
-bot_token = "8134891989:AAHMEvVHGWSzux-AtQP3856X6-k2gmzQJEM"
+bot_token = "8183522431:AAHDQy3xZj5kE37ew6qIQw0-Cy9h0AYw_7M"
 bot_owner_id = 6279412066
 log_chat_id = -10002662838  # Your log group
 
