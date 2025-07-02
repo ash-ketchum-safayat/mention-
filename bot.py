@@ -20,37 +20,23 @@ bot_owner_id = 6279412066
 log_chat_id = -10002662838  # Your log group
 
 pic_urls = [
-    "https://files.catbox.moe/eviz7e.jpg"
-
-    "https://files.catbox.moe/tnjrqb.jpg"
-
-    "https://files.catbox.moe/xycejx.jpg"
-
-    "https://files.catbox.moe/jcjqhs.jpg"
-
-    "https://files.catbox.moe/cidhop.jpg"
-
-    "https://files.catbox.moe/qy1ti2.jpg"
-
+    "https://files.catbox.moe/eviz7e.jpg",
+    "https://files.catbox.moe/tnjrqb.jpg",
+    "https://files.catbox.moe/xycejx.jpg",
+    "https://files.catbox.moe/jcjqhs.jpg",
+    "https://files.catbox.moe/cidhop.jpg",
+    "https://files.catbox.moe/qy1ti2.jpg",
     "https://files.catbox.moe/yriq4n.jpg"
-    # 🔁 Add more links here!
 ]
 
 menu_images = [
-    "https://files.catbox.moe/eviz7e.jpg"
-
-    "https://files.catbox.moe/tnjrqb.jpg"
-
-    "https://files.catbox.moe/xycejx.jpg"
-
-    "https://files.catbox.moe/jcjqhs.jpg"
-
-    "https://files.catbox.moe/cidhop.jpg"
-
-    "https://files.catbox.moe/qy1ti2.jpg"
-
+    "https://files.catbox.moe/eviz7e.jpg",
+    "https://files.catbox.moe/tnjrqb.jpg",
+    "https://files.catbox.moe/xycejx.jpg",
+    "https://files.catbox.moe/jcjqhs.jpg",
+    "https://files.catbox.moe/cidhop.jpg",
+    "https://files.catbox.moe/qy1ti2.jpg",
     "https://files.catbox.moe/yriq4n.jpg"
-    # 🔁 Add more links here!
 ]
 
 # === Init ===
