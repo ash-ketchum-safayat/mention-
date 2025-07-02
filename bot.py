@@ -62,20 +62,7 @@ gmute_table = db.table("gmutes")
 
 warnings_table = db.table("warnings")
 
-import requests
 
-@client.on(events.NewMessage(pattern="^/pic (.+)"))
-async def get_unsplash_image(event):
-    query = event.pattern_match.group(1)
-    try:
-        # Unsplash Source API (no API key needed)
-        img_url = f"https://source.unsplash.com/1600x900/?{query}"
-        await client.send_file(event.chat_id, img_url, caption=f"🖼 Unsplash Image for: `{query}`", link_preview=False)
-    except Exception as e:
-        await event.reply(f"❌ Failed to fetch image:\n`{str(e)}`")
-
-import qrcode
-from io import BytesIO
 
 blocked_keywords = [
     "porn", "scam", "grabify", "joinchat", "bit.ly", "adf.ly", "tinyurl", "adult", "virus", "trojan", "darkweb"
@@ -120,62 +107,7 @@ async def cmd_handler(event):
 
 import cv2
 
-def scan_qr_opencv(path):
-    img = cv2.imread(path)
-    detector = cv2.QRCodeDetector()
-    data, bbox, _ = detector.detectAndDecode(img)
-    return data if data else None
 
-@client.on(events.NewMessage(pattern="^/scanqr$"))
-async def scan_qr_command(event):
-    if not event.is_reply:
-        return await event.reply("📸 Reply to a QR code image with `/scanqr`.")
-    
-    reply = await event.get_reply_message()
-    if not reply.photo and not reply.document:
-        return await event.reply("🖼 This isn't an image.")
-
-    path = await reply.download_media()
-    result = scan_qr_opencv(path)
-    if result:
-        await event.reply(f"🔍 Decoded QR Content:\n`{result}`", parse_mode="md")
-    else:
-        await event.reply("❌ No QR code found in the image.")
-
-import cv2
-from telethon import events
-
-def scan_qr_opencv(path):
-    """Scans the given image for QR codes using OpenCV."""
-    try:
-        img = cv2.imread(path)
-        qr_detector = cv2.QRCodeDetector()
-        data, bbox, _ = qr_detector.detectAndDecode(img)
-        return data.strip() if data else None
-    except Exception as e:
-        return f"Error decoding QR: {e}"
-
-@client.on(events.NewMessage(pattern="^/scanqr$"))
-async def scan_qr_command(event):
-    if not event.is_reply:
-        return await event.reply("📸 Reply to a QR code image with `/scanqr`.")
-    
-    reply = await event.get_reply_message()
-    if not reply.photo and not reply.document:
-        return await event.reply("🖼 This isn't an image.")
-
-    try:
-        path = await reply.download_media()
-        decoded_text = scan_qr_opencv(path)
-
-        if not decoded_text:
-            return await event.reply("❌ No QR code found in the image.")
-        elif decoded_text.startswith("Error"):
-            return await event.reply(f"❌ {decoded_text}")
-        else:
-            await event.reply(f"🔍 **Decoded QR Content:**\n`{decoded_text}`", parse_mode="md")
-    except Exception as e:
-        await event.reply(f"❌ Failed to scan QR code:\n`{e}`")
 
 import subprocess
 
