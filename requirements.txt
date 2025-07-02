@@ -6,3 +6,6 @@ googletrans==4.0.0rc1
 requests
 pillow
 opencv-python
+qrcode
+gTTS
+psutil
