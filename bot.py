@@ -1,4 +1,6 @@
 import random
+import time
+import datetime
 import os, logging, asyncio, time, datetime
 from telethon import Button
 from telethon.sync import TelegramClient, events
@@ -46,6 +48,7 @@ menu_images = [
 # === Init ===
 
 client = TelegramClient('session', api_id, api_hash).start(bot_token=bot_token)
+bot_start_time = time.time()
 
 emojis = ["😀", "😍", "🤣", "👍", "🌟", "🎉", "👏", "🤔", "😎", "🥰", "🥳", "🙌", "🌺", "🎈", "🌞", "🌍", "🎶", "🍕", "🍦", "🚀"]
 bot_start_time = time.time()
@@ -57,6 +60,7 @@ groups_table = db.table("groups")
 channels_table = db.table("channels")
 gban_table = db.table("gbans")
 gmute_table = db.table("gmutes")
+afk_table = db.table("afk")  # ✅ Add this
 
 # === Commands ===
 
@@ -104,8 +108,6 @@ async def cmd_handler(event):
         final_output = final_output[:4000] + "\n\n⚠️ Output too long, truncated."
 
     await event.reply(f"📤 Output:\n```{final_output.strip()}```", parse_mode="md")
-
-
 
 
 
@@ -328,53 +330,27 @@ async def check_warnings(event):
 @client.on(events.NewMessage(pattern="^/start$"))
 async def start(event):
     user_id = event.sender_id
-    chat = await event.get_chat()
 
-    # ⏱ Uptime Calculation
-    uptime_seconds = int(time.time() - bot_start_time)
-    uptime = str(datetime.timedelta(seconds=uptime_seconds))
+    uptime = str(datetime.timedelta(seconds=int(time.time() - bot_start_time)))
 
-    # 👤 Private Chat (DM)
     if event.is_private:
         if not users_table.contains(Query().id == user_id):
             users_table.insert({"id": user_id})
 
-        welcome_text = (
-            f"👋 **Welcome, [{event.sender.first_name}](tg://user?id={user_id})!**\n\n"
-            "I'm **TagAllXBot**, your all-in-one group assistant 🤖\n\n"
-            "**🔧 Main Features:**\n"
-            "• 👥 Mention Everyone\n"
-            "• 🤖 ChatGPT & AI Tools\n"
-            "• 🔐 Lock + Anti-Spam System\n"
-            "• 🛠 Admin Utilities\n"
-            "• 🎉 Games, Polls & More!\n\n"
-            "✨ Tap a button below to get started!"
-        )
-
         await client.send_message(
             event.chat_id,
-            welcome_text,
-            file="https://files.catbox.moe/cidhop.jpg",  # Optional banner
+            f"👋 Welcome, [{event.sender.first_name}](tg://user?id={user_id})!\n\n"
+            "I'm **TagAllXBot**, your all-in-one group assistant.",
             buttons=[
                 [Button.inline("✨ Open Menu", b"main_menu")],
                 [Button.url("➕ Add Me to Group", f"https://t.me/{(await client.get_me()).username}?startgroup=true")],
-                [
-                    Button.url("📢 Updates Channel", "https://t.me/AshxBots"),
-                    Button.url("👤 Contact Owner", "https://t.me/AshKetchum_001")
-                ]
+                [Button.url("📢 Updates", "https://t.me/AshxBots"), Button.url("👤 Owner", "https://t.me/AshKetchum_001")]
             ],
-            parse_mode="md",
-            link_preview=False
-        )
-
-    # 👥 In a group or channel
-    else:
-        await event.reply(
-            f"✅ **Bot is Online!**\n"
-            f"⏱ **Uptime:** `{uptime}`\n"
-            f"📦 **Name:** `{(await client.get_me()).first_name}`",
             parse_mode="md"
         )
+    else:
+        await event.reply(f"✅ Bot is online!\n⏱ Uptime: `{uptime}`", parse_mode="md")
+
 @client.on(events.NewMessage(pattern="^/help$"))
 async def help(event):
     await event.reply(
