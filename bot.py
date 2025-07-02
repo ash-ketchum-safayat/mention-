@@ -347,31 +347,32 @@ async def check_warnings(event):
 
 @client.on(events.NewMessage(pattern="^/start$"))
 async def start(event):
-    user_id = event.sender_id
+    from_user = await event.get_sender()
+    user_id = from_user.id
 
-    # Save user to DB if not already there
+    # Save user to DB (no duplicates)
     if not users_table.contains(Query().id == user_id):
         users_table.insert({"id": user_id})
 
-    # If user is chatting in DM
+    # 📥 In Private Chat
     if event.is_private:
+        bot_user = await client.get_me()
         await client.send_message(
             event.chat_id,
-            f"👋 **Hello, [{event.sender.first_name}](tg://user?id={user_id})!**\n\n"
-            "I'm **TagAllXBot**, your multipurpose group assistant bot.\n\n"
-            "✨ Tap the buttons below to explore features or add me to your group!",
+            f"👋 Hello, [{from_user.first_name}](tg://user?id={user_id})!\n\n"
+            "I'm **TagAllXBot**, your all-in-one group assistant.\n"
+            "Click below to explore features or add me to your group.",
             buttons=[
                 [Button.inline("📂 Open Menu", b"main_menu")],
-                [Button.url("➕ Add Me to Group", f"https://t.me/{(await client.get_me()).username}?startgroup=true")],
+                [Button.url("➕ Add Me to Group", f"https://t.me/{bot_user.username}?startgroup=true")],
                 [Button.url("📢 Updates", "https://t.me/AshxBots"), Button.url("👤 Owner", "https://t.me/AshKetchum_001")]
             ],
             parse_mode="md"
         )
 
-    # If command is sent in a group
+    # 👥 In Group or Channel
     else:
-        await event.reply("✅ **Bot is Online and Ready!**\nUse `/menu` to view available commands.", parse_mode="md")
-
+        await event.reply("✅ **Bot is online and working!**\nUse `/menu` to explore features.", parse_mode="md")
 @client.on(events.NewMessage(pattern="^/help$"))
 async def help(event):
     await event.reply(
