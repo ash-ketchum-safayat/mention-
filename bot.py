@@ -690,18 +690,38 @@ async def broadcast(event):
     )
     await event.reply(report)
 
+import psutil
+from pathlib import Path
+
 @client.on(events.NewMessage(pattern="^/botstats$"))
 async def bot_stats(event):
     if event.sender_id != bot_owner_id:
         return await event.reply("❌ You are not authorized to use this command.")
+
     uptime = str(datetime.timedelta(seconds=int(time.time() - bot_start_time)))
+
+    total_users = len(users_table)
+    total_groups = len(groups_table)
+    total_channels = len(channels_table)
+
+    db_file = Path("bot_data.json")
+    db_size = db_file.stat().st_size / 1024 if db_file.exists() else 0
+
+    cpu_percent = psutil.cpu_percent()
+    memory = psutil.virtual_memory()
+    memory_used = f"{memory.used // (1024 ** 2)}MB / {memory.total // (1024 ** 2)}MB"
+
     await event.reply(
         f"**🤖 Bot Statistics**\n\n"
-        f"🟢 **Online**\n"
-        f"⏱ **Uptime:** `{uptime}`\n"
-        f"👤 **Users:** `{len(users_table)}`\n"
-        f"👥 **Groups:** `{len(groups_table)}`\n"
-        f"📢 **Channels:** `{len(channels_table)}`"
+        f"🟢 **Status:** Online\n"
+        f"⏱ **Uptime:** `{uptime}`\n\n"
+        f"📦 **Database Size:** `{db_size:.2f} KB`\n"
+        f"📊 **CPU Usage:** `{cpu_percent}%`\n"
+        f"💾 **RAM Usage:** `{memory_used}`\n\n"
+        f"👤 **Users:** `{total_users}`\n"
+        f"👥 **Groups:** `{total_groups}`\n"
+        f"📢 **Channels:** `{total_channels}`\n\n"
+        f"💡 **Commands Loaded:** `~{len(client._event_builders)}`"
     )
 
 @client.on(events.ChatAction)
