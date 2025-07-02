@@ -55,8 +55,7 @@ bot_start_time = time.time()
 
 # === TinyDB ===
 
-import os
-import json
+import json, os
 
 def fix_tinydb(file):
     if not os.path.exists(file):
@@ -64,13 +63,20 @@ def fix_tinydb(file):
     with open(file) as f:
         try:
             data = json.load(f)
-        except json.JSONDecodeError:
-            data = {}
-    if isinstance(data, list) or not isinstance(data, dict):
-        print("❌ Corrupted TinyDB file. Resetting...")
-        with open(file, "w") as f:
-            f.write('{"_default": {}, "users": {}, "groups": {}, "channels": {}, "afk": {}}')
+            if isinstance(data, list) or not isinstance(data.get("afk", {}), dict):
+                raise Exception("Corrupted")
+        except:
+            print("⚠️ Resetting corrupted TinyDB file.")
+            with open(file, "w") as f:
+                json.dump({
+                    "_default": {},
+                    "users": {},
+                    "groups": {},
+                    "channels": {},
+                    "afk": {}
+                }, f, indent=4)
 
+fix_tinydb("bot_data.json")
 fix_tinydb("bot_data.json")
 # === Commands ===
 db = TinyDB("bot_data.json")
