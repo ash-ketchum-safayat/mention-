@@ -90,47 +90,7 @@ blocked_keywords = [
     "porn", "scam", "grabify", "joinchat", "bit.ly", "adf.ly", "tinyurl", "adult", "virus", "trojan", "darkweb"
 ]
 
-@client.on(events.NewMessage(pattern="^/qrcode (.+)"))
-async def make_qrcode(event):
-    text = event.pattern_match.group(1)
 
-    if any(x in text.lower() for x in blocked_keywords):
-        return await event.reply("🚫 Dangerous link detected. QR code blocked.")
-
-    qr = qrcode.QRCode(box_size=10, border=2)
-    qr.add_data(text)
-    qr.make(fit=True)
-
-    img = qr.make_image(fill_color="black", back_color="white")
-    buffer = BytesIO()
-    buffer.name = "qrcode.png"
-    img.save(buffer, format="PNG")
-    buffer.seek(0)
-
-    await client.send_file(event.chat_id, buffer, caption="✅ QR Code Generated!")
-
-from PIL import Image
-from pyzbar.pyzbar import decode
-
-@client.on(events.NewMessage(pattern="^/scanqr$"))
-async def scan_qr_command(event):
-    if not event.is_reply:
-        return await event.reply("📸 Reply to a QR code image with `/scanqr`.")
-
-    reply = await event.get_reply_message()
-    if not reply.photo and not reply.document:
-        return await event.reply("🖼 This isn't an image.")
-
-    path = await reply.download_media()
-    try:
-        img = Image.open(path)
-        decoded = decode(img)
-        if not decoded:
-            return await event.reply("❌ No QR code found in the image.")
-        result = decoded[0].data.decode("utf-8")
-        await event.reply(f"🔍 Decoded QR Content:\n`{result}`", parse_mode="md")
-    except Exception as e:
-        await event.reply(f"❌ Error scanning:\n`{e}`")
 
 import io
 import traceback
@@ -1265,19 +1225,7 @@ async def handle_vote(event):
     poll_votes.setdefault(key, set()).add(uid)
     await event.answer(f"✅ Voted: {option}", alert=True)
 
-import requests
 
-UNSPLASH_ACCESS_KEY = "YOUR_ACCESS_KEY"
-
-@client.on(events.NewMessage(pattern="^/pic (.+)"))
-async def get_image(event):
-    query = event.pattern_match.group(1)
-    r = requests.get(f"https://api.unsplash.com/photos/random?query={query}&client_id={UNSPLASH_ACCESS_KEY}")
-    if r.status_code == 200:
-        img_url = r.json()["urls"]["regular"]
-        await client.send_file(event.chat_id, img_url, caption=f"📸 {query.title()} from Unsplash")
-    else:
-        await event.reply("❌ Could not fetch image.")
 
 @client.on(events.NewMessage(pattern="^/say (.+)"))
 async def say_msg(event):
