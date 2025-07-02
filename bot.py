@@ -19,6 +19,10 @@ bot_token = "8134891989:AAHMEvVHGWSzux-AtQP3856X6-k2gmzQJEM"
 bot_owner_id = 6279412066
 log_chat_id = -10002662838  # Your log group
 
+from telethon import TelegramClient, events
+
+
+
 pic_urls = [
     "https://files.catbox.moe/eviz7e.jpg",
     "https://files.catbox.moe/tnjrqb.jpg",
@@ -40,8 +44,9 @@ menu_images = [
 ]
 
 # === Init ===
-client = TelegramClient('client_mention', api_id, api_hash).start(bot_token=bot_token)
-spam_chats = []
+
+client = TelegramClient('session', api_id, api_hash).start(bot_token=bot_token)
+
 emojis = ["😀", "😍", "🤣", "👍", "🌟", "🎉", "👏", "🤔", "😎", "🥰", "🥳", "🙌", "🌺", "🎈", "🌞", "🌍", "🎶", "🍕", "🍦", "🚀"]
 bot_start_time = time.time()
 
