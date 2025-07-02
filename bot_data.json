@@ -1,7 +1,7 @@
 {
   "_default": {},
-  "users": [],
-  "groups": [],
-  "channels": [],
-  "afk": []
+  "users": {},
+  "groups": {},
+  "channels": {},
+  "afk": {}
 }
