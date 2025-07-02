@@ -54,7 +54,7 @@ emojis = ["😀", "😍", "🤣", "👍", "🌟", "🎉", "👏", "🤔", "😎"
 bot_start_time = time.time()
 
 # === TinyDB ===
-db = TinyDB("botxash.json")
+db = TinyDB("bot_data.json")
 users_table = db.table("users")
 groups_table = db.table("groups")
 channels_table = db.table("channels")
