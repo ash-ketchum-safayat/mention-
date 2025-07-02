@@ -54,6 +54,19 @@ emojis = ["😀", "😍", "🤣", "👍", "🌟", "🎉", "👏", "🤔", "😎"
 bot_start_time = time.time()
 
 # === TinyDB ===
+
+import json
+
+# Repair if file is just a list
+try:
+    with open("bot_data.json") as f:
+        data = json.load(f)
+        if isinstance(data, list):
+            raise ValueError("Invalid DB structure")
+except:
+    with open("bot_data.json", "w") as f:
+        f.write('{"_default": {}, "users": [], "groups": [], "channels": [], "afk": []}')
+# === Commands ===
 db = TinyDB("bot_data.json")
 users_table = db.table("users")
 groups_table = db.table("groups")
@@ -61,8 +74,6 @@ channels_table = db.table("channels")
 gban_table = db.table("gbans")
 gmute_table = db.table("gmutes")
 afk_table = db.table("afk")  # ✅ Add this
-
-# === Commands ===
 
 warnings_table = db.table("warnings")
 
