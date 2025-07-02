@@ -989,7 +989,10 @@ async def mod_tools(event):
     except Exception as e:
         await event.reply(f"❌ Error:\n{e}")
 
-@@client.on(events.NewMessage(pattern="^/menu$"))
+from telethon import events, Button
+
+# --- /menu command ---
+@client.on(events.NewMessage(pattern="^/menu$"))
 async def show_menu(event):
     await event.delete()
     img = random.choice(menu_images)
@@ -1008,80 +1011,108 @@ async def show_menu(event):
         ]
     )
 
-@@client.on(events.CallbackQuery)
+# --- Callback Menu Handler ---
+@client.on(events.CallbackQuery)
 async def callback_handler(event):
     data = event.data.decode("utf-8")
+    img = random.choice(menu_images)
+    await event.delete()
 
     if data == "mention_menu":
-        await event.edit(
-            "**👥 Mention Menu**\n\n"
-            "`/mention <msg>` – Tag all users\n"
-            "`/emoji <msg>` – Tag with emojis\n"
-            "`/tagrecent <N> <msg>` – Tag last N users\n"
-            "`/stop` – Stop ongoing tag process",
+        await client.send_file(
+            event.chat_id,
+            file=img,
+            caption=(
+                "**👥 Mention Menu**\n\n"
+                "`/mention <msg>` – Tag all users\n"
+                "`/emoji <msg>` – Tag with emojis\n"
+                "`/tagrecent <N> <msg>` – Tag last N users\n"
+                "`/stop` – Stop ongoing tag process"
+            ),
             buttons=[[Button.inline("🔙 Back", b"main_menu")]]
         )
 
     elif data == "ai_menu":
-        await event.edit(
-            "**🤖 AI & GPT Tools**\n\n"
-            "`/ask <query>` – Ask ChatGPT\n"
-            "`/aichat on|off` – AI chat in group\n"
-            "`/stylize <text>` – Fancy fonts\n"
-            "`/vc <text>` – Text-to-voice\n"
-            "`/say <text>` – Bot says text",
+        await client.send_file(
+            event.chat_id,
+            file=img,
+            caption=(
+                "**🤖 AI & GPT Tools**\n\n"
+                "`/ask <query>` – Ask ChatGPT\n"
+                "`/aichat on|off` – AI chat in group\n"
+                "`/stylize <text>` – Fancy fonts\n"
+                "`/vc <text>` – Text-to-voice\n"
+                "`/say <text>` – Bot says text"
+            ),
             buttons=[[Button.inline("🔙 Back", b"main_menu")]]
         )
 
     elif data == "lock_menu":
-        await event.edit(
-            "**🔐 Lock System**\n\n"
-            "`/lock <type>` – Lock content\n"
-            "`/unlock <type>` – Unlock content\n"
-            "`/lockall`, `/unlockall`\n"
-            "`/banword <word>` – Ban word\n"
-            "`/unbanword <word>` – Remove ban\n"
-            "`/zombies` – Remove deleted users\n"
-            "`/flood` – Anti-spam filter",
+        await client.send_file(
+            event.chat_id,
+            file=img,
+            caption=(
+                "**🔐 Lock System**\n\n"
+                "`/lock <type>` – Lock content\n"
+                "`/unlock <type>` – Unlock content\n"
+                "`/lockall`, `/unlockall`\n"
+                "`/banword <word>` – Ban word\n"
+                "`/unbanword <word>` – Remove ban\n"
+                "`/zombies` – Remove deleted users\n"
+                "`/flood` – Anti-spam filter"
+            ),
             buttons=[[Button.inline("🔙 Back", b"main_menu")]]
         )
 
     elif data == "util_menu":
-        await event.edit(
-            "**🛠 Utilities**\n\n"
-            "`/userinfo` – Info of replied user\n"
-            "`/purge` – Delete from reply\n"
-            "`/pinall <N>` – Pin last N messages\n"
-            "`/id` – Show ID info\n"
-            "`/admins` – List admins\n"
-            "`/invite` – Group link\n"
-            "`/setwelcome Welcome {name}` – Custom welcome",
+        await client.send_file(
+            event.chat_id,
+            file=img,
+            caption=(
+                "**🛠 Utilities**\n\n"
+                "`/userinfo` – Info of replied user\n"
+                "`/purge` – Delete from reply\n"
+                "`/pinall <N>` – Pin last N messages\n"
+                "`/id` – Show ID info\n"
+                "`/admins` – List admins\n"
+                "`/invite` – Group link\n"
+                "`/setwelcome Welcome {name}` – Custom welcome"
+            ),
             buttons=[[Button.inline("🔙 Back", b"main_menu")]]
         )
 
     elif data == "fun_menu":
-        await event.edit(
-            "**🎉 Fun & Game Commands**\n\n"
-            "`/truth`, `/dare` – Fun questions\n"
-            "`/gift 100` – Fake coin gift\n"
-            "`/poll What?;Yes;No` – Quick poll\n"
-            "`/reverse`, `/funify` – Text play\n"
-            "`/dice`, `/roll 100` – Randomizer",
+        await client.send_file(
+            event.chat_id,
+            file=img,
+            caption=(
+                "**🎉 Fun & Game Commands**\n\n"
+                "`/truth`, `/dare` – Fun questions\n"
+                "`/gift 100` – Fake coin gift\n"
+                "`/poll What?;Yes;No` – Quick poll\n"
+                "`/reverse`, `/funify` – Text play\n"
+                "`/dice`, `/roll 100` – Randomizer"
+            ),
             buttons=[[Button.inline("🔙 Back", b"main_menu")]]
         )
 
     elif data == "stats_menu":
-        await event.edit(
-            "**📊 Bot Stats & Admin Tools**\n\n"
-            "`/botstats` – Total stats\n"
-            "`/broadcast` – Send to all users/groups\n"
-            "`/promote`, `/fullpromote` (reply)\n"
-            "`/ban`, `/kick`, `/mute`, `/unmute`\n"
-            "`/report` – Report message to admins",
+        await client.send_file(
+            event.chat_id,
+            file=img,
+            caption=(
+                "**📊 Bot Stats & Admin Tools**\n\n"
+                "`/botstats` – Total stats\n"
+                "`/broadcast` – Send to all users/groups\n"
+                "`/promote`, `/fullpromote` (reply)\n"
+                "`/ban`, `/kick`, `/mute`, `/unmute`\n"
+                "`/report` – Report message to admins"
+            ),
             buttons=[[Button.inline("🔙 Back", b"main_menu")]]
         )
 
     elif data == "main_menu":
+        # Reuse the main menu
         await show_menu(event)
 
 vault_table = db.table("vault")
