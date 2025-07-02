@@ -480,10 +480,17 @@ async def get_id(event):
     else:
         await event.reply(f"🆔 Your ID: `{event.sender_id}`\n📍Chat ID: `{event.chat_id}`")
 
-@client.on(events.NewMessage(pattern="^/(dice|roll)$"))
-async def roll_dice(event):
-    result = random.randint(1, 6)
-    await event.reply(f"🎲 You rolled a `{result}`!")
+@client.on(events.NewMessage(pattern="^/dice$"))
+async def dice(event):
+    await client.send_message(event.chat_id, file='🎲')
+
+import random
+
+@client.on(events.NewMessage(pattern="^/roll$"))
+async def roll(event):
+    dice_types = ['🎯', '🏀', '🎳', '🎰', '⚽']  # Telegram-supported types
+    emoji = random.choice(dice_types)
+    await client.send_message(event.chat_id, file=emoji)
 
 @client.on(events.NewMessage(pattern="^/tagadmins$"))
 async def tag_admins(event):
