@@ -18,6 +18,21 @@ api_hash = "2d01711f0566de2309b633f49542e7e2"
 bot_token = "8183522431:AAHDQy3xZj5kE37ew6qIQw0-Cy9h0AYw_7M"
 bot_owner_id = 6279412066
 
+pic_urls = [
+    "https://i.imgur.com/N9gksQR.jpeg",
+    "https://i.imgur.com/Uz4B7Dz.jpeg",
+    "https://i.imgur.com/Y7HqXy6.jpeg",
+    # 🔁 Add more links here!
+]
+
+menu_images = [
+    "https://i.imgur.com/N9gksQR.jpeg",
+    "https://i.imgur.com/Y7HqXy6.jpeg",
+    "https://i.imgur.com/ZMbRCei.jpeg",
+    "https://i.imgur.com/Uz4B7Dz.jpeg",
+    # Add more as you like
+]
+
 # === Init ===
 client = TelegramClient('client_mention', api_id, api_hash).start(bot_token=bot_token)
 spam_chats = []
@@ -974,12 +989,15 @@ async def mod_tools(event):
     except Exception as e:
         await event.reply(f"❌ Error:\n{e}")
 
-@client.on(events.NewMessage(pattern="^/menu$"))
+@@client.on(events.NewMessage(pattern="^/menu$"))
 async def show_menu(event):
-    await event.delete()  # delete the /menu command itself
-    await client.send_message(
+    await event.delete()
+    img = random.choice(menu_images)
+
+    await client.send_file(
         event.chat_id,
-        "**🧠 TagAllXBot Menu**\n\nClick buttons below to explore features.",
+        file=img,
+        caption="**🧠 TagAllXBot Menu**\n\nClick buttons below to explore features.",
         buttons=[
             [Button.inline("👥 Mention Tools", b"mention_menu")],
             [Button.inline("🤖 AI & GPT", b"ai_menu")],
@@ -1098,24 +1116,6 @@ async def pin_all(event):
             continue
     await event.reply(f"✅ Pinned last {count} messages.")
 
-ai_enabled_table = db.table("ai_groups")
-
-@client.on(events.NewMessage(pattern="^/aichat (on|off)$"))
-async def toggle_ai(event):
-    if not event.is_group:
-        return
-    if not await is_admin(event.chat_id, event.sender_id):
-        return await event.reply("❌ Admins only.")
-
-    mode = event.pattern_match.group(1)
-    if mode == "on":
-        ai_enabled_table.upsert({"id": event.chat_id}, Query().id == event.chat_id)
-        await event.reply("✅ AI Chat enabled.")
-    else:
-        ai_enabled_table.remove(Query().id == event.chat_id)
-        await event.reply("🛑 AI Chat disabled.")
-
-@
 
 @client.on(events.NewMessage(pattern="^/invite$"))
 async def get_invite(event):
@@ -1466,6 +1466,25 @@ async def remove_afk_and_check_mentions(event):
                 if afk_user:
                     reason = afk_user['reason']
                     return await event.reply(f"💤 This user is AFK!\nReason: `{reason}`")
+
+pic_table = db.table("pics")
+
+@client.on(events.NewMessage(pattern="^/addpic (https?://\S+)$"))
+async def add_pic(event):
+    if event.sender_id != bot_owner_id:
+        return await event.reply("❌ Not authorized.")
+    url = event.pattern_match.group(1)
+    pic_table.insert({"url": url})
+    await event.reply("✅ Picture link added!")
+
+@client.on(events.NewMessage(pattern="^/pic$"))
+async def random_pic(event):
+    pics = [p['url'] for p in pic_table.all()]
+    if not pics:
+        return await event.reply("⚠️ No pictures added yet.")
+    await client.send_file(event.chat_id, random.choice(pics), caption="📸")
+
+
 
 
 # === Start Bot ===
