@@ -17,6 +17,7 @@ api_id = 4226067
 api_hash = "2d01711f0566de2309b633f49542e7e2"
 bot_token = "8183522431:AAHDQy3xZj5kE37ew6qIQw0-Cy9h0AYw_7M"
 bot_owner_id = 6279412066
+log_chat_id = -10002662838  # Your log group
 
 pic_urls = [
     "https://i.imgur.com/N9gksQR.jpeg",
@@ -44,6 +45,8 @@ db = TinyDB("botxash.json")
 users_table = db.table("users")
 groups_table = db.table("groups")
 channels_table = db.table("channels")
+gban_table = db.table("gbans")
+gmute_table = db.table("gmutes")
 
 # === Commands ===
 
@@ -1515,6 +1518,175 @@ async def random_pic(event):
         return await event.reply("⚠️ No pictures added yet.")
     await client.send_file(event.chat_id, random.choice(pics), caption="📸")
 
+def is_gbanned(user_id):
+    return gban_table.contains(Query().id == user_id)
+
+def is_gmuted(user_id):
+    return gmute_table.contains(Query().id == user_id)
+
+
+
+@client.on(events.NewMessage(pattern="^/gban$"))
+async def gban(event):
+    if event.sender_id != bot_owner_id or not event.is_reply:
+        return await event.reply("❌ Only the bot owner can use this command and reply to a user.")
+
+    reply = await event.get_reply_message()
+    user_id = reply.sender_id
+
+    if is_gbanned(user_id):
+        return await event.reply("🚫 User is already globally banned.")
+    
+    gban_table.insert({"id": user_id})
+
+    async for dialog in client.iter_dialogs():
+        if dialog.is_group or dialog.is_channel:
+            try:
+                await client.edit_permissions(dialog.id, user_id, view_messages=False)
+            except:
+                continue  # Ignore if not admin in the chat
+
+    await event.reply(f"✅ Globally banned user [{reply.sender.first_name}](tg://user?id={user_id})", parse_mode="md")
+    await client.send_message(log_chat_id, f"🚫 GBanned: [{reply.sender.first_name}](tg://user?id={user_id})", parse_mode="md")
+
+
+@client.on(events.NewMessage(pattern="^/gunban$"))
+async def gunban(event):
+    if event.sender_id != bot_owner_id or not event.is_reply:
+        return await event.reply("❌ Only the bot owner can use this command and reply to a user.")
+
+    reply = await event.get_reply_message()
+    user_id = reply.sender_id
+
+    if not is_gbanned(user_id):
+        return await event.reply("✅ User is not banned.")
+
+    gban_table.remove(Query().id == user_id)
+
+    async for dialog in client.iter_dialogs():
+        if dialog.is_group or dialog.is_channel:
+            try:
+                await client.edit_permissions(dialog.id, user_id, view_messages=True)
+            except:
+                continue
+
+    await event.reply(f"✅ Unbanned [{reply.sender.first_name}](tg://user?id={user_id})", parse_mode="md")
+    await client.send_message(log_chat_id, f"✅ GUnbanned: [{reply.sender.first_name}](tg://user?id={user_id})", parse_mode="md")
+
+
+@client.on(events.NewMessage(pattern="^/gmute$"))
+async def gmute(event):
+    if event.sender_id != bot_owner_id or not event.is_reply:
+        return await event.reply("❌ Only the bot owner can use this command and reply to a user.")
+
+    reply = await event.get_reply_message()
+    user_id = reply.sender_id
+
+    if is_gmuted(user_id):
+        return await event.reply("🔇 User is already globally muted.")
+
+    gmute_table.insert({"id": user_id})
+    await event.reply(f"🔇 Globally muted [{reply.sender.first_name}](tg://user?id={user_id})", parse_mode="md")
+    await client.send_message(log_chat_id, f"🔇 GMute: [{reply.sender.first_name}](tg://user?id={user_id})", parse_mode="md")
+
+
+@client.on(events.NewMessage(pattern="^/gunmute$"))
+async def gunmute(event):
+    if event.sender_id != bot_owner_id or not event.is_reply:
+        return await event.reply("❌ Only the bot owner can use this command and reply to a user.")
+
+    reply = await event.get_reply_message()
+    user_id = reply.sender_id
+
+    if not is_gmuted(user_id):
+        return await event.reply("✅ User is not muted.")
+
+    gmute_table.remove(Query().id == user_id)
+    await event.reply(f"✅ Unmuted [{reply.sender.first_name}](tg://user?id={user_id})", parse_mode="md")
+    await client.send_message(log_chat_id, f"✅ GUnmute: [{reply.sender.first_name}](tg://user?id={user_id})", parse_mode="md")
+
+@client.on(events.NewMessage())
+async def auto_delete_muted(event):
+    if event.is_private or not event.sender_id:
+        return
+    if is_gmuted(event.sender_id):
+        try:
+            await event.delete()
+        except:
+            pass
+
+@client.on(events.NewMessage(pattern="^/gkick$"))
+async def gkick(event):
+    if event.sender_id != bot_owner_id or not event.is_reply:
+        return await event.reply("❌ Only the bot owner can use this command and reply to a user.")
+
+    reply = await event.get_reply_message()
+    user_id = reply.sender_id
+
+    async for dialog in client.iter_dialogs():
+        if dialog.is_group or dialog.is_channel:
+            try:
+                await client.kick_participant(dialog.id, user_id)
+                await client.edit_permissions(dialog.id, user_id, view_messages=True)  # Allow rejoin
+            except:
+                continue
+
+    await event.reply(f"✅ Globally kicked [{reply.sender.first_name}](tg://user?id={user_id})", parse_mode="md")
+    await client.send_message(log_chat_id, f"👢 GKicked: [{reply.sender.first_name}](tg://user?id={user_id})", parse_mode="md")
+
+@client.on(events.NewMessage(pattern="^/gpin$"))
+async def gpin(event):
+    if event.sender_id != bot_owner_id or not event.is_reply:
+        return await event.reply("❌ Reply to a message to pin it globally.")
+
+    reply = await event.get_reply_message()
+
+    async for dialog in client.iter_dialogs():
+        if dialog.is_group:
+            try:
+                sent = await client.send_message(dialog.id, reply.message)
+                await client.pin_message(dialog.id, sent.id, notify=False)
+            except:
+                continue
+
+    await event.reply("📌 Message pinned in all groups.")
+
+@client.on(events.NewMessage(pattern="^/banall$"))
+async def ban_all_groups(event):
+    if event.sender_id != bot_owner_id:
+        return await event.reply("❌ Only the bot owner can use this command.")
+
+    if not event.is_reply:
+        return await event.reply("⚠️ You must reply to a user to ban them from all groups.")
+
+    reply = await event.get_reply_message()
+    user_id = reply.sender_id
+    user_name = reply.sender.first_name
+
+    success, failed = 0, 0
+
+    async for dialog in client.iter_dialogs():
+        if dialog.is_group or dialog.is_channel:
+            try:
+                await client.edit_permissions(dialog.id, user_id, view_messages=False)
+                success += 1
+            except:
+                failed += 1
+
+    await event.reply(
+        f"🚫 **User [{user_name}](tg://user?id={user_id}) banned from all groups.**\n"
+        f"✅ Success: `{success}` | ❌ Failed: `{failed}`", parse_mode="md"
+    )
+
+    # Optional: log the action
+    await client.send_message(
+        log_chat_id,  # Your log group ID
+        f"🚫 **BANALL Issued**\n"
+        f"👤 User: [{user_name}](tg://user?id={user_id}) (`{user_id}`)\n"
+        f"🔨 Action: Banned from all groups\n"
+        f"✅ Success: `{success}` | ❌ Failed: `{failed}`",
+        parse_mode="md"
+    )
 
 
 
