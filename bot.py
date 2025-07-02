@@ -412,7 +412,7 @@ async def start(event):
         await client.send_message(
             event.chat_id,
             welcome_text,
-            file="https://telegra.ph/file/e9c688ff02597d6f8b9cb.jpg",  # Optional banner
+            file="https://files.catbox.moe/cidhop.jpg",  # Optional banner
             buttons=[
                 [Button.inline("✨ Open Menu", b"main_menu")],
                 [Button.url("➕ Add Me to Group", f"https://t.me/{(await client.get_me()).username}?startgroup=true")],
