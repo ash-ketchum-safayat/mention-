@@ -1721,7 +1721,6 @@ async def ban_all_groups(event):
     )
 
 
-
-# === Start Bot ===
 print(">> BOT STARTED <<")
 client.run_until_disconnected()
+# === Start Bot =
