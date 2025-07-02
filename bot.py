@@ -266,19 +266,26 @@ async def reload_plugin(event):
         await event.reply(f"❌ Failed to reload plugin:\n`{str(e)}`")
 
 last_deleted = {}
+message_cache = {}  # chat_id -> {msg_id: message}
 
-@client.on(events.MessageDeleted())
-async def track_deletion(event):
-    for msg in event.deleted_ids:
-        last_deleted[event.chat_id] = msg
+@client.on(events.NewMessage)
+async def cache_messages(event):
+    if not event.is_private:
+        if event.chat_id not in message_cache:
+            message_cache[event.chat_id] = {}
+        message_cache[event.chat_id][event.id] = event.message
+        # Optional: Limit cache size per group
+        if len(message_cache[event.chat_id]) > 1000:
+            message_cache[event.chat_id].pop(next(iter(message_cache[event.chat_id])))
 
 @client.on(events.NewMessage(pattern="^/snipe$"))
 async def snipe(event):
-    if event.chat_id in last_deleted:
-        msg = await client.get_messages(event.chat_id, ids=last_deleted[event.chat_id])
-        await event.reply(f"💀 Sniped:\n{msg.text}")
+    msg = last_deleted.get(event.chat_id)
+    if msg:
+        content = msg.text or msg.message or "<no text>"
+        await event.reply(f"💀 Sniped:\n{content}")
     else:
-        await event.reply("❌ Nothing to snipe.")
+        await event.reply("❌ Nothing to snipe recently.")
 
 
 
@@ -331,25 +338,28 @@ async def check_warnings(event):
 async def start(event):
     user_id = event.sender_id
 
-    uptime = str(datetime.timedelta(seconds=int(time.time() - bot_start_time)))
+    # Save user to DB if not already there
+    if not users_table.contains(Query().id == user_id):
+        users_table.insert({"id": user_id})
 
+    # If user is chatting in DM
     if event.is_private:
-        if not users_table.contains(Query().id == user_id):
-            users_table.insert({"id": user_id})
-
         await client.send_message(
             event.chat_id,
-            f"👋 Welcome, [{event.sender.first_name}](tg://user?id={user_id})!\n\n"
-            "I'm **TagAllXBot**, your all-in-one group assistant.",
+            f"👋 **Hello, [{event.sender.first_name}](tg://user?id={user_id})!**\n\n"
+            "I'm **TagAllXBot**, your multipurpose group assistant bot.\n\n"
+            "✨ Tap the buttons below to explore features or add me to your group!",
             buttons=[
-                [Button.inline("✨ Open Menu", b"main_menu")],
+                [Button.inline("📂 Open Menu", b"main_menu")],
                 [Button.url("➕ Add Me to Group", f"https://t.me/{(await client.get_me()).username}?startgroup=true")],
                 [Button.url("📢 Updates", "https://t.me/AshxBots"), Button.url("👤 Owner", "https://t.me/AshKetchum_001")]
             ],
             parse_mode="md"
         )
+
+    # If command is sent in a group
     else:
-        await event.reply(f"✅ Bot is online!\n⏱ Uptime: `{uptime}`", parse_mode="md")
+        await event.reply("✅ **Bot is Online and Ready!**\nUse `/menu` to view available commands.", parse_mode="md")
 
 @client.on(events.NewMessage(pattern="^/help$"))
 async def help(event):
