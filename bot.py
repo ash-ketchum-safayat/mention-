@@ -18,7 +18,7 @@ LOGGER = logging.getLogger(__name__)
 api_id = 4226067
 api_hash = "2d01711f0566de2309b633f49542e7e2"
 bot_token = "8183522431:AAHDQy3xZj5kE37ew6qIQw0-Cy9h0AYw_7M"
-bot_owner_id = 6279412066
+bot_owner_id = [6279412066, 7800979183]
 log_chat_id = -10002662838  # Your log group
 
 from telethon import TelegramClient, events
