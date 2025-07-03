@@ -17,7 +17,7 @@ LOGGER = logging.getLogger(__name__)
 emojis = ["😀", "😍", "🤣", "👍", "🌟", "🎉", "👏", "🤔", "😎", "🥰", "🥳", "🙌", "🌺", "🎈", "🌞", "🌍", "🎶", "🍕", "🍦", "🚀"]
 api_id = int(8447214)
 api_hash = "9ec5782ddd935f7e2763e5e49a590c0d"
-bot_token = "6587995904:AAFE2GdkhXDoFFUGD5c11KdC4Iuh8K8snzc"
+bot_token = "8183522431:AAHDQy3xZj5kE37ew6qIQw0-Cy9h0AYw_7M"
 client = TelegramClient('client', api_id, api_hash).start(bot_token=bot_token)
 spam_chats = []
 
