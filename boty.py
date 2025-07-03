@@ -47,7 +47,7 @@ async def help(event):
     )
   )
   
-@client.on(events.NewMessage(pattern="^/(mention|tagall|utag|tagx|mentionall|chutiyo|bachhelog)?(.*)"))
+@client.on(events.NewMessage(pattern="^/(mention|tagall|utag|tagx|mentionall|chutiyo|bachhelog)"))
 async def mentionall(event):
   chat_id = event.chat_id
   if event.is_private:
