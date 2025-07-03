@@ -86,6 +86,7 @@ channels_table = db.table("channels")
 gban_table = db.table("gbans")
 gmute_table = db.table("gmutes")
 afk_table = db.table("afk")  # ✅ Add this
+admins_table = db.table("admins")
 
 warnings_table = db.table("warnings")
 
@@ -1673,6 +1674,42 @@ async def ban_all_groups(event):
         f"✅ Success: `{success}` | ❌ Failed: `{failed}`",
         parse_mode="md"
     )
+@client.on(events.NewMessage(pattern="^/add_admin$"))
+async def add_admin(event):
+    if event.sender_id != bot_owner_id:
+        return await event.reply("❌ You are not authorized to add admins.")
+
+    if not event.is_reply:
+        return await event.reply("❌ Reply to a user's message to add them as admin.")
+
+    reply_msg = await event.get_reply_message()
+    user_id = reply_msg.sender_id
+
+    if admins_table.contains(Query().id == user_id):
+        return await event.reply("⚠️ This user is already an admin.")
+
+    admins_table.insert({"id": user_id})
+    await event.reply(f"✅ User `{user_id}` has been added as an admin.")
+
+@client.on(events.NewMessage(pattern="^/remove_admin$"))
+async def remove_admin(event):
+    if event.sender_id != bot_owner_id:
+        return await event.reply("❌ You are not authorized to remove admins.")
+
+    if not event.is_reply:
+        return await event.reply("❌ Reply to a user's message to remove them from admin list.")
+
+    reply_msg = await event.get_reply_message()
+    user_id = reply_msg.sender_id
+
+    if not admins_table.contains(Query().id == user_id):
+        return await event.reply("⚠️ This user is not an admin.")
+
+    admins_table.remove(Query().id == user_id)
+    await event.reply(f"✅ User `{user_id}` has been removed from admin list.")
+
+def is_admin(user_id):
+    return admins_table.contains(Query().id == user_id) or user_id == bot_owner_id
 
 
 print(">> BOT STARTED <<")
