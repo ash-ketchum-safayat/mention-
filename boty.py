@@ -25,11 +25,11 @@ spam_chats = []
 async def start(event):
   await client.send_message(
     event.chat_id,
-    "__**I'm @SerenaProBot**, I can mention almost all members in group or channel 👻\nClick **/help** for more information__\n\n**Join @Rudra_Bots For Latest Updates**",
+    "__**I'm @SerenaProBot**, I can mention almost all members in group or channel 👻\nClick **/help** for more information__\n\n**Join @AshxBots For Latest Updates**",
     link_preview=False,
     buttons=(
       [
-        Button.url('📦 Owner', 'https://t.me/RudraGupta008')
+        Button.url('📦 Owner', 'https://t.me/Ashketchum_001')
       ]
     )
   )
@@ -42,7 +42,7 @@ async def help(event):
     link_preview=False,
     buttons=(
       [
-        Button.url('📦 Owner', 'https://t.me/RudraGupta008')
+        Button.url('📦 Owner', 'https://t.me/Ashketchum_001')
       ]
     )
   )
@@ -110,7 +110,7 @@ async def mentionall(event):
       usrtxt = ''
   try:
     spam_chats.remove(chat_id)
-    await client.send_message(chat_id,'<b>Mentioning All Users Done ✅</b>',parse_mode='HTML')
+    await client.send_message(chat_id,'<b>Mentioning All Users Done ✅</b>\n\nJoin @AshxBot',parse_mode='HTML')
   except:
     pass
 
