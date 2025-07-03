@@ -47,7 +47,7 @@ async def help(event):
     )
   )
   
-@client.on(events.NewMessage(pattern="^/mention ?(.*)"))
+@client.on(events.NewMessage(pattern="^/(mention|tagall|utag|tagx|mentionall|chutiyo|bachhelog)?(.*)"))
 async def mentionall(event):
   chat_id = event.chat_id
   if event.is_private:
@@ -110,7 +110,7 @@ async def mentionall(event):
       usrtxt = ''
   try:
     spam_chats.remove(chat_id)
-    await client.send_message(chat_id,'<b>Mentioning All Users Done ✅</b>\n\nJoin @AshxBot',parse_mode='HTML')
+    await client.send_message(chat_id,'<b>Mentioning All Users Done ✅</b>\n\nJoin @AshxBots',parse_mode='HTML')
   except:
     pass
 
