@@ -47,73 +47,80 @@ async def help(event):
     )
   )
   
-@client.on(events.NewMessage(pattern="^/(mention|tagall|utag|tagx|mentionall|chutiyo|bachhelog)"))
+from telethon import events
+from telethon.tl.functions.channels import GetParticipantRequest
+from telethon.errors import UserNotParticipantError
+from telethon.tl.types import ChannelParticipantAdmin, ChannelParticipantCreator
+import asyncio
+
+# Keep track of active tag sessions
+spam_chats = []
+
+@client.on(events.NewMessage(pattern="^/(mention|tagall|utag|tagx|mentionall|chutiyo|bachhelog)(?:\s+(.*))?"))
 async def mentionall(event):
-  chat_id = event.chat_id
-  if event.is_private:
-    return await event.respond("__This command can be use in groups and channels!__")
-  
-  is_admin = False
-  try:
-    partici_ = await client(GetParticipantRequest(
-      event.chat_id,
-      event.sender_id
-    ))
-  except UserNotParticipantError:
+    chat_id = event.chat_id
+
+    if event.is_private:
+        return await event.reply("🚫 This command can only be used in groups!")
+
+    # Check admin status
     is_admin = False
-  else:
-    if (
-      isinstance(
-        partici_.participant,
-        (
-          ChannelParticipantAdmin,
-          ChannelParticipantCreator
-        )
-      )
-    ):
-      is_admin = True
-  if not is_admin:
-    return await event.respond("__Only admins can mention all!__")
-  
-  if event.chat_id in spam_chats:
-    return await event.respond('**There is already proccess on going...**')
+    try:
+        participant = await client(GetParticipantRequest(chat_id, event.sender_id))
+        if isinstance(participant.participant, (ChannelParticipantAdmin, ChannelParticipantCreator)):
+            is_admin = True
+    except UserNotParticipantError:
+        pass
 
-  if event.pattern_match.group(1) and event.is_reply:
-    return await event.respond("__Give me one argument!__")
-  elif event.pattern_match.group(1):
-    mode = "text_on_cmd"
-    msg = event.pattern_match.group(1)
-  elif event.is_reply:
-    mode = "text_on_reply"
-    msg = await event.get_reply_message()
-    if msg == None:
-        return await event.respond("__I can't mention members for older messages! (messages which are sent before I'm added to group)__")
-  else:
-    return await event.respond("__Reply to a message or give me some text to mention others!__")
-  
-  spam_chats.append(chat_id)
-  usrnum = 0
-  usrtxt = ''
-  async for usr in client.iter_participants(chat_id):
-    if not chat_id in spam_chats:
-      break
-    usrnum += 1
-    usrtxt += f"<a href ='tg://user?id={usr.id}'><b> {usr.first_name}</b></a>"
-    if usrnum == 7:
-      if mode == "text_on_cmd":
-        txt = f"{usrtxt}\n\n<b>{msg}</b>"
-        await client.send_message(chat_id, txt,parse_mode='HTML')
-      elif mode == "text_on_reply":
-        await msg.reply(usrtxt,parse_mode='HTML')
-      await asyncio.sleep(1.5)
-      usrnum = 0
-      usrtxt = ''
-  try:
-    spam_chats.remove(chat_id)
-    await client.send_message(chat_id,'<b>Mentioning All Users Done ✅</b>\n\nJoin @AshxBots',parse_mode='HTML')
-  except:
-    pass
+    if not is_admin:
+        return await event.reply("❌ Only admins can mention all members!")
 
+    if chat_id in spam_chats:
+        return await event.reply("⚠️ Tagging is already in progress...")
+
+    # Determine mode
+    mode = None
+    message = None
+    if event.pattern_match.group(2):  # Command with text
+        mode = "text_on_cmd"
+        message = event.pattern_match.group(2)
+    elif event.is_reply:  # Reply mode
+        mode = "text_on_reply"
+        message = await event.get_reply_message()
+        if not message:
+            return await event.reply("⚠️ Cannot mention users for very old messages!")
+    else:
+        return await event.reply("❓ Provide some text or reply to a message to tag everyone.")
+
+    spam_chats.append(chat_id)
+    user_count = 0
+    tag_text = ''
+
+    async for user in client.iter_participants(chat_id):
+        if chat_id not in spam_chats:
+            break
+
+        user_count += 1
+        tag_text += f"<a href='tg://user?id={user.id}'> {user.first_name}</a> "
+
+        if user_count == 7:
+            try:
+                if mode == "text_on_cmd":
+                    await client.send_message(chat_id, f"{tag_text}\n\n<b>{message}</b>", parse_mode='HTML')
+                elif mode == "text_on_reply":
+                    await message.reply(tag_text, parse_mode='HTML')
+            except Exception as e:
+                print(f"Error sending message: {e}")
+            await asyncio.sleep(1.5)
+            user_count = 0
+            tag_text = ''
+
+    # Remove chat from spam_chats and confirm completion
+    try:
+        spam_chats.remove(chat_id)
+        await client.send_message(chat_id, "✅ Finished mentioning everyone!\nJoin @AshxBots", parse_mode='HTML')
+    except Exception as e:
+        print(f"Error in cleanup: {e}")
 @client.on(events.NewMessage(pattern="^/emoji ?(.*)"))
 async def mentionall(event):
   chat_id = event.chat_id
