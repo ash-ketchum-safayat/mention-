@@ -1371,8 +1371,9 @@ math_handler = ConversationHandler(
     states={
         MATH_WAITING: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, receive_answer),
-            # Handle timeout using a special handler
-            ConversationHandler.TIMEOUT: [MessageHandler(filters.ALL, timeout_answer)],
+        ],
+        ConversationHandler.TIMEOUT: [
+            MessageHandler(filters.ALL, timeout_answer),
         ],
     },
     conversation_timeout=30,
