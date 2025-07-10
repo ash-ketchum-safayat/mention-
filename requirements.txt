@@ -2,10 +2,16 @@ telethon
 cryptg
 tinydb
 asyncio
-googletrans==4.0.0rc1
 requests
 pillow
 opencv-python
 qrcode
 gTTS
 psutil
+python-telegram-bot==21.1
+pymongo[srv]==4.6.1
+dnspython==2.4.2
+deep-translator==1.11.4
+pytz
+aiohttp
+indic-transliteration==2.3.42
