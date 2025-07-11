@@ -16,3 +16,4 @@ pytz
 aiohttp
 indic-transliteration==2.3.4
 autopep8
+cssbeautifier
