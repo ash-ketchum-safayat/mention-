@@ -1846,7 +1846,78 @@ async def slot_custom(update: Update, context: ContextTypes.DEFAULT_TYPE):
         animation="https://media.giphy.com/media/26tPoyDhjiJ2g7rEs/giphy.mp4",
         caption="🎰 Spinning the slot..."
     )
+# === /broad ===
+async def broad(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMINS:
+        return
 
+    replied_msg = update.message.reply_to_message
+    if not replied_msg:
+        await update.message.reply_text("Please reply to a message to broadcast.")
+        return
+
+    await forward_to_all_users(context, replied_msg)
+
+
+async def forward_to_all_users(context, message: Message):
+    users = list(users_col.find({}, {"_id": 0, "user_id": 1}))
+    success, fail = 0, 0
+
+    for user in users:
+        uid = user["user_id"]
+        try:
+            await context.bot.forward_message(chat_id=uid, from_chat_id=message.chat.id, message_id=message.message_id)
+            success += 1
+        except Exception as e:
+            logger.warning(f"Failed to send to {uid}: {e}")
+            fail += 1
+        await asyncio.sleep(0.35)
+
+    await message.reply_text(f"Total Users: {len(users)}\nSent: {success}\nFailed: {fail}")
+
+
+# === /groups ===
+async def groups(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMINS:
+        return
+
+    try:
+        with open(GROUPS_FILE, "r") as f:
+            group_ids = json.load(f)
+    except Exception as e:
+        logger.error(f"Group file read error: {e}")
+        await update.message.reply_text("Error loading group list.")
+        return
+
+    total_members = 0
+    total_admin = 0
+    not_in = 0
+
+    for group_id in group_ids:
+        try:
+            count = await context.bot.get_chat_member_count(group_id)
+            status = await context.bot.get_chat_member(group_id, context.bot.id)
+            total_members += count
+            if status.status == ChatMember.ADMINISTRATOR:
+                total_admin += 1
+        except Exception as e:
+            logger.warning(f"Error in group {group_id}: {e}")
+            not_in += 1
+
+        await asyncio.sleep(1 / GROUPS_PER_SECOND)
+
+    await update.message.reply_markdown(
+        f"*Total Group Members:* `{total_members}`\n"
+        f"*Total Admins In:* `{total_admin}`\n"
+        f"*Total Groups:* `{len(group_ids)}`\n"
+        f"*Bot Not In:* `{not_in}`"
+    )
+
+
+# === Save User on Any Msg (Optional) ===
+async def track_all_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    users_col.update_one({"user_id": user_id}, {"$set": {"user_id": user_id}}, upsert=True)
  
 
                
@@ -1923,7 +1994,9 @@ def main():
     app.add_handler(CommandHandler("ubword", unbanword))
     app.add_handler(CommandHandler("bword", banword))
     app.add_handler(CommandHandler("translate", translate))
-    
+    app.add_handler(CommandHandler("broad", broad))
+    app.add_handler(CommandHandler("groups", groups))
+    app.add_handler(MessageHandler(filters.ALL, track_all_users))
     app.add_handler(CommandHandler("ping", ping))
     app.add_handler(CommandHandler("time", time_cmd))
     app.add_handler(CommandHandler("remind", remind))
