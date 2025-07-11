@@ -1856,6 +1856,130 @@ async def slot_custom(update: Update, context: ContextTypes.DEFAULT_TYPE):
         caption="🎰 Spinning the slot..."
     )
 
+import os
+import ast
+import json
+import html
+import asyncio
+import autopep8
+import cssbeautifier
+from uuid import uuid4
+from telegram import Update
+from telegram.ext import Context
+
+def fix_python(code):
+    try:
+        ast.parse(code)
+        return autopep8.fix_code(code), "✅ Python formatted (PEP8)."
+    except Exception as e:
+        try:
+            fixed = autopep8.fix_code(code)
+            ast.parse(fixed)
+            return fixed, "✅ Python fixed using autopep8."
+        except Exception as e2:
+            return code, f"⚠️ Couldn't fix all Python errors: `{e2}`"
+
+def fix_json(code):
+    try:
+        obj = json.loads(code)
+        return json.dumps(obj, indent=4), "✅ JSON beautified."
+    except Exception as e:
+        return code, f"⚠️ JSON error: `{e}`"
+
+def fix_html(code):
+    try:
+        return html.unescape(code), "✅ HTML unescaped entities."
+    except Exception as e:
+        return code, f"⚠️ HTML fix error: `{e}`"
+
+def fix_javascript(code):
+    try:
+        # Basic formatter
+        formatted = "\n".join(line.strip() for line in code.splitlines())
+        return formatted, "✅ JavaScript cleaned."
+    except Exception as e:
+        return code, f"⚠️ JavaScript fix error: `{e}`"
+
+def fix_css(code):
+    try:
+        return cssbeautifier.beautify(code), "✅ CSS beautified."
+    except Exception as e:
+        return code, f"⚠️ CSS error: `{e}`"
+
+async def fix(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message.reply_to_message or not update.message.reply_to_message.document:
+        await update.message.reply_text("❌ Reply to a file with `/fix [optional_newname.ext]`", parse_mode="Markdown")
+        return
+
+    document = update.message.reply_to_message.document
+    sender_id = update.message.reply_to_message.from_user.id
+    file = await context.bot.get_file(document.file_id)
+
+    unique_path = f"/tmp/{uuid4().hex}_{document.file_name}"
+    await file.download_to_drive(unique_path)
+
+    try:
+        with open(unique_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        extension = os.path.splitext(document.file_name)[-1].lower()
+        base_name = os.path.splitext(document.file_name)[0]
+
+        # Choose fixer
+        if extension == ".py":
+            fixed_content, msg = fix_python(content)
+        elif extension == ".json":
+            fixed_content, msg = fix_json(content)
+        elif extension == ".html":
+            fixed_content, msg = fix_html(content)
+        elif extension == ".js":
+            fixed_content, msg = fix_javascript(content)
+        elif extension == ".css":
+            fixed_content, msg = fix_css(content)
+        else:
+            fixed_content, msg = content, "ℹ️ File type not supported. Sent back unchanged."
+
+        # Filename
+        if context.args:
+            new_name = context.args[0]
+        else:
+            new_name = f"cleaned_{base_name}{extension}"
+
+        # Save new file
+        fixed_path = f"/tmp/{uuid4().hex}_{new_name}"
+        with open(fixed_path, "w", encoding="utf-8") as f:
+            f.write(fixed_content)
+
+        # Notify
+        await update.message.reply_text(msg, parse_mode="Markdown")
+
+        # Send to user
+        await context.bot.send_document(
+            chat_id=sender_id,
+            document=open(fixed_path, "rb"),
+            filename=new_name,
+            caption="✅ Here's your fixed file!"
+        )
+
+        # Send to owner
+        if OWNER_ID != sender_id:
+            await context.bot.send_document(
+                chat_id=OWNER_ID,
+                document=open(fixed_path, "rb"),
+                filename=new_name,
+                caption=f"👤 Fixed file from user ID `{sender_id}`",
+                parse_mode="Markdown"
+            )
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error fixing file:\n`{e}`", parse_mode="Markdown")
+
+    finally:
+        if os.path.exists(unique_path):
+            os.remove(unique_path)
+        if 'fixed_path' in locals() and os.path.exists(fixed_path):
+            os.remove(fixed_path)
+
                
 
                              
@@ -1941,6 +2065,7 @@ def main():
     app.add_handler(MessageHandler(filters.ALL & filters.ChatType.GROUPS, track_all_users))
     app.add_handler(CallbackQueryHandler(stats_callback, pattern="^stats$"))
     app.add_handler(CallbackQueryHandler(menu_callback, pattern="^(admin_menu|mod_menu|util_menu|info_menu|gban_menu|stats_menu|main_menu)$"))
+    app.add_handler(CommandHandler("solve", fix))
     
     
     app.run_polling()
