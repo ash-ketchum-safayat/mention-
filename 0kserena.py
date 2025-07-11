@@ -1799,6 +1799,63 @@ async def startup_message(app: Application):
     bot = Bot(BOT_TOKEN)
     await bot.send_message(chat_id=LOG_GROUP_ID, text="💫 My system is starting......")
 
+import random
+from telegram import Update
+from telegram.ext import ContextTypes
+
+async def boxing(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    outcomes = [
+        "🥊 You landed a *Jab*!",
+        "🥊 You hit with a *Hook*!",
+        "🥊 Powerful *Uppercut*!",
+        "💥 *Knockout punch*! You win!",
+        "🛡️ Missed! Opponent dodged.",
+        "😵 You got hit back!"
+    ]
+    result = random.choice(outcomes)
+    await update.message.reply_text(result, parse_mode="Markdown")
+
+async def snake(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    outcomes = [
+        "🐍 You slithered past the traps!",
+        "🔥 Oh no! You touched fire!",
+        "🍎 You ate an apple and grew!",
+        "💥 Game Over! You hit a wall!"
+    ]
+    await update.message.reply_text(random.choice(outcomes))
+
+import random
+import asyncio
+from telegram import Update, Message
+from telegram.ext import ContextTypes
+
+async def coin_toss(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Step 1: "Coin flipped up..."
+    msg: Message = await update.message.reply_text("🪙 Coin flipped up...")
+    await asyncio.sleep(1)
+    await msg.delete()
+
+    # Step 2: "Coin coming down..."
+    msg = await update.message.reply_text("🪙 Coin Flipping....")
+    await asyncio.sleep(1)
+    await msg.delete()
+# Step 2: "Coin coming down..."
+    msg = await update.message.reply_text("🪙 Coin Flipping.....")
+
+    await asyncio.sleep(1)
+    await msg.delete()
+
+
+    # Step 3: Result
+    result = random.choice(["*Heads*", "*Tails*"])
+    await update.message.reply_text(f"🪙 Oh! It's {result}", parse_mode="Markdown")
+
+async def slot_custom(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_animation(
+        animation="https://media.giphy.com/media/26tPoyDhjiJ2g7rEs/giphy.mp4",
+        caption="🎰 Spinning the slot..."
+    )
+
                
 
                              
