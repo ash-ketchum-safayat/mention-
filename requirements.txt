@@ -14,4 +14,5 @@ dnspython==2.4.2
 deep-translator==1.11.4
 pytz
 aiohttp
-indic-transliteration==2.3.42
+indic-transliteration==2.3.4
+autopep8
