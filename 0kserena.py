@@ -1028,106 +1028,97 @@ async def kickme(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.unban_chat_member(update.message.chat.id, update.message.from_user.id)
     
 # Required imports
-from telegram import Update
-from telegram.ext import ContextTypes
+from telegram import Update, ChatMemberAdministrator, ChatMemberOwner
+from telegram.constants import ParseMode, ChatType
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    filters,
+    ContextTypes
+)
 import asyncio
 
-from telegram import Update
-from telegram.ext import ContextTypes
-import asyncio
-
-# Simulated database of users who interacted
-known_users = {}  # dict of {chat_id: set(user_ids)}
+# Keep track of active tag sessions
 spam_chats = []
 
-async def record_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    user_id = update.effective_user.id
-
-    if chat_id not in known_users:
-        known_users[chat_id] = set()
-
-    known_users[chat_id].add(user_id)
-
-async def tagall_ptb(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# Tag-All Command Handler
+async def mentionall(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
     user = update.effective_user
 
-    if chat.type not in ["group", "supergroup"]:
-        return await update.message.reply_text("🚫 Group only.")
+    if chat.type == ChatType.PRIVATE:
+        return await update.message.reply_text("🚫 This command can only be used in groups!")
 
-    member = await context.bot.get_chat_member(chat.id, user.id)
-    if member.status not in ["administrator", "creator"]:
-        return await update.message.reply_text("❌ Only admins can use this.")
+    # Check admin status
+    member = await chat.get_member(user.id)
+    if not isinstance(member.status, str) or member.status not in ("administrator", "creator"):
+        return await update.message.reply_text("❌ Only admins can mention all members!")
 
     if chat.id in spam_chats:
-        return await update.message.reply_text("⚠️ Already tagging...")
+        return await update.message.reply_text("⚠️ Tagging is already in progress...")
 
-    if update.message.reply_to_message:
-        base_msg = update.message.reply_to_message
-        mode = "reply"
-    elif context.args:
-        base_msg = " ".join(context.args)
-        mode = "text"
+    # Determine mode
+    mode = None
+    message = None
+    if context.args:
+        mode = "text_on_cmd"
+        message = " ".join(context.args)
+    elif update.message.reply_to_message:
+        mode = "text_on_reply"
+        message = update.message.reply_to_message
     else:
-        return await update.message.reply_text("ℹ️ Reply or provide message text.")
+        return await update.message.reply_text("❓ Provide some text or reply to a message to tag everyone.")
 
     spam_chats.append(chat.id)
+    user_count = 0
+    tag_text = ''
 
-    users = list(group_members.get(chat.id, set()))
-    if not users:
-        spam_chats.remove(chat.id)
-        return await update.message.reply_text("❗ No known users to tag yet!")
+    async for member in context.bot.get_chat_administrators(chat.id):  # Load admin cache
+        pass
 
-    batch = []
-    count = 0
-    for uid in users:
-        user_mention = f"<a href='tg://user?id={uid}'>user</a>"
-        batch.append(user_mention)
-        count += 1
+    async for user in context.bot.get_chat_members(chat.id):
+        if chat.id not in spam_chats:
+            break
 
-        if count == 5:
-            msg_text = " ".join(batch)
-            if mode == "reply":
-                await base_msg.reply_text(msg_text, parse_mode="HTML")
-            else:
-                await update.message.reply_text(f"{msg_text}\n\n{base_msg}", parse_mode="HTML")
+        user_count += 1
+        name = user.user.first_name or "User"
+        tag_text += f"<a href='tg://user?id={user.user.id}'>{name}</a> "
+
+        if user_count == 7:
+            try:
+                if mode == "text_on_cmd":
+                    await context.bot.send_message(chat_id=chat.id, text=f"{tag_text}\n\n<b>{message}</b>", parse_mode=ParseMode.HTML)
+                elif mode == "text_on_reply":
+                    await message.reply_text(tag_text, parse_mode=ParseMode.HTML)
+            except Exception as e:
+                print(f"Error sending message: {e}")
             await asyncio.sleep(1.5)
-            batch = []
-            count = 0
+            user_count = 0
+            tag_text = ''
 
-    if batch:
-        msg_text = " ".join(batch)
-        if mode == "reply":
-            await base_msg.reply_text(msg_text, parse_mode="HTML")
-        else:
-            await update.message.reply_text(f"{msg_text}\n\n{base_msg}", parse_mode="HTML")
+    # Cleanup
+    try:
+        spam_chats.remove(chat.id)
+        await update.message.reply_text("✅ Finished mentioning everyone!\nJoin @AshxBots", parse_mode=ParseMode.HTML)
+    except Exception as e:
+        print(f"Cleanup error: {e}")
 
-    spam_chats.remove(chat.id)
-    await update.message.reply_text("✅ Done tagging.\n\nUpdates : @AshxBots")
-
-async def track_all_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# Cancel Command
+async def cancel_tag(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
-    user_id = update.effective_user.id
+    if chat_id not in spam_chats:
+        return await update.message.reply_text("❌ There is no process ongoing...")
+    try:
+        spam_chats.remove(chat_id)
+        await update.message.reply_text("✅ Tagging stopped.")
+    except:
+        pass
 
-    if update.effective_chat.type in ["group", "supergroup"]:
-        if chat_id not in group_members:
-            group_members[chat_id] = set()
-        group_members[chat_id].add(user_id)
 
-async def cancel_tagging(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.id in spam_chats:
-        spam_chats.remove(update.effective_chat.id)
-        await update.message.reply_text("❌ Tagging stopped.")
-    else:
-        await update.message.reply_text("ℹ️ No tagging are running.")
-        
-async def cancel_tagging(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.id in spam_chats:
-        spam_chats.remove(update.effective_chat.id)
-        await update.message.reply_text("❌ Tagging stopped.")
-    else:
-        await update.message.reply_text("ℹ️ No tagging is in progress.")   
+# Initialize Bot
+
+
 from telegram import Update
 from telegram.ext import ContextTypes
 from datetime import datetime, timedelta
@@ -2017,8 +2008,8 @@ def main():
     app.add_handler(CommandHandler("football", football))
     app.add_handler(CommandHandler("slot", slot))
     app.add_handler(CommandHandler("unpin", unpin))
-    app.add_handler(CommandHandler(["tagall", "mentionall", "chutiyo", "bachhelog", "tagz", "mention", "utag"], tagall_ptb))
-    app.add_handler(CommandHandler(["cancel", "stop", "rukja", "fuckoff"], cancel_tagging))
+    app.add_handler(CommandHandler(["mention", "tagall", "utag", "tagx", "mentionall", "chutiyo", "bachhelog", "on"], mentionall))
+    app.add_handler(CommandHandler(["stop", "stopall", "rukja", "cancel", "fuckoff", "off"], cancel_tag))
     app.add_handler(CommandHandler("broadcast", broadcast))
     app.add_handler(CommandHandler("id", get_id))
     app.add_handler(CommandHandler(["magicball", "predict"], magic8ball))
