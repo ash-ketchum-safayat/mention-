@@ -531,20 +531,11 @@ async def log_action(text: str, context: ContextTypes.DEFAULT_TYPE):
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    chat = update.effective_chat
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes
 
-    # Log only if user is NEW
-    if chat.type == "private":
-        user_id = user.id
-        if not users_col.find_one({"user_id": user_id}):
-            users_col.insert_one({"user_id": user_id})
-            await context.bot.send_message(
-                chat_id=LOG_GROUP_ID,
-                text=f"👤 {user.first_name} (`{user.id}`) started the bot.",
-                parse_mode="Markdown"
-            )
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = update.message or update.callback_query.message
 
     keyboard = [
         [InlineKeyboardButton("➕ Add Me", url="https://t.me/SerenaProbot?startgroup=true")],
@@ -556,8 +547,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("👑 Owner", url="https://t.me/AshKetchum_001")]
     ]
 
-    await update.message.reply_video(
-        video="https://envs.sh/e_B.mp4",
+    await message.reply_video(
+        video="https://envs.sh/e_B.mp4",    # Replace with working URL
         caption=(
             "👋 *Welcome to Serena!*\n\n"
             "I'm your smart group management assistant.\n"
