@@ -40,6 +40,9 @@ menu_images = [
     "https://files.catbox.moe/yriq4n.jpg"
 ]
 
+spam_chats = []
+group_members = {}  # {chat_id: set(user_ids)}
+
 truths = [
     "What’s your biggest fear?",
     "Have you ever lied to your best friend?",
@@ -1071,29 +1074,46 @@ async def tagall_ptb(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     spam_chats.append(chat.id)
 
-    users = list(known_users.get(chat.id, set()))
+    users = list(group_members.get(chat.id, set()))
     if not users:
-        return await update.message.reply_text("No known users to tag yet!")
+        spam_chats.remove(chat.id)
+        return await update.message.reply_text("❗ No known users to tag yet!")
 
     batch = []
     count = 0
     for uid in users:
-        user_mention = f"[user](tg://user?id={uid})"
+        user_mention = f"<a href='tg://user?id={uid}'>user</a>"
         batch.append(user_mention)
         count += 1
 
         if count == 5:
             msg_text = " ".join(batch)
             if mode == "reply":
-                await base_msg.reply_text(msg_text, parse_mode="Markdown")
+                await base_msg.reply_text(msg_text, parse_mode="HTML")
             else:
-                await update.message.reply_text(f"{msg_text}\n\n{base_msg}", parse_mode="Markdown")
+                await update.message.reply_text(f"{msg_text}\n\n{base_msg}", parse_mode="HTML")
             await asyncio.sleep(1.5)
             batch = []
             count = 0
 
+    if batch:
+        msg_text = " ".join(batch)
+        if mode == "reply":
+            await base_msg.reply_text(msg_text, parse_mode="HTML")
+        else:
+            await update.message.reply_text(f"{msg_text}\n\n{base_msg}", parse_mode="HTML")
+
     spam_chats.remove(chat.id)
     await update.message.reply_text("✅ Done tagging.\n\nUpdates : @AshxBots")
+
+async def track_all_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    user_id = update.effective_user.id
+
+    if update.effective_chat.type in ["group", "supergroup"]:
+        if chat_id not in group_members:
+            group_members[chat_id] = set()
+        group_members[chat_id].add(user_id)
 
 async def cancel_tagging(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id in spam_chats:
@@ -1833,6 +1853,7 @@ def main():
     app.add_handler(CommandHandler("imgurl", imgurl))
     app.add_handler(CommandHandler("ratebot", ratebot))
     app.add_handler(CallbackQueryHandler(ratebot_callback, pattern=r"^rate_"))
+    app.add_handler(MessageHandler(filters.ALL & filters.ChatType.GROUPS, track_all_users))
     
     app.add_handler(CallbackQueryHandler(menu_callback, pattern="^(admin_menu|mod_menu|util_menu|info_menu|gban_menu|stats_menu|main_menu)$"))
     
