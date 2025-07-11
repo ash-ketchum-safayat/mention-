@@ -1854,7 +1854,7 @@ def main():
     app.add_handler(CommandHandler("ratebot", ratebot))
     app.add_handler(CallbackQueryHandler(ratebot_callback, pattern=r"^rate_"))
     app.add_handler(MessageHandler(filters.ALL & filters.ChatType.GROUPS, track_all_users))
-    
+    app.add_handler(CallbackQueryHandler(stats_callback, pattern="^stats$"))
     app.add_handler(CallbackQueryHandler(menu_callback, pattern="^(admin_menu|mod_menu|util_menu|info_menu|gban_menu|stats_menu|main_menu)$"))
     
     
