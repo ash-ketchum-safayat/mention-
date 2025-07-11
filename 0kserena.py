@@ -1209,9 +1209,32 @@ async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE):
     result = random.randint(1, num)
     await update.message.reply_text(f"You rolled: {result}")
     
+from telegram import Update
+from telegram.ext import ContextTypes
+
+# 🎲 Standard Dice
 async def dice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_dice(emoji="🎲")
-    
+
+# 🏀 Basketball
+async def basketball(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_dice(emoji="🏀")
+
+# 🎳 Bowling
+async def bowling(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_dice(emoji="🎳")
+
+# 🎯 Dart
+async def dart(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_dice(emoji="🎯")
+
+# ⚽ Football / Soccer
+async def football(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_dice(emoji="⚽")
+
+# 🎰 Slot Machine
+async def slot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_dice(emoji="🎰")
         
 async def zombies(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
@@ -1807,6 +1830,11 @@ def main():
     app.add_handler(CommandHandler("botstats", botstats))
     app.add_handler(CommandHandler("pin", pin))
     app.add_handler(CommandHandler("dice", dice))
+    app.add_handler(CommandHandler("basketball", basketball))
+    app.add_handler(CommandHandler("bowling", bowling))
+    app.add_handler(CommandHandler("dart", dart))
+    app.add_handler(CommandHandler("football", football))
+    app.add_handler(CommandHandler("slot", slot))
     app.add_handler(CommandHandler("unpin", unpin))
     app.add_handler(CommandHandler(["tagall", "mentionall", "chutiyo", "bachhelog", "tagz", "mention", "utag"], tagall_ptb))
     app.add_handler(CommandHandler(["cancel", "stop", "rukja", "fuckoff"], cancel_tagging))
