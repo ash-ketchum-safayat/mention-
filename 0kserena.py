@@ -924,19 +924,30 @@ async def unpin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("📍 Message unpinned.")
 
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.from_user.id != OWNER_ID:
+    if update.effective_user.id != OWNER_ID:
         return
-    if not update.message.reply_to_message:
-        return await update.message.reply_text("Reply to a message to broadcast it.")
-    text = update.message.reply_to_message.text
-    async for dialog in context.bot.get_my_chats():
-        if dialog.type.name in ["GROUP", "SUPERGROUP"]:
-            try:
-                await context.bot.send_message(dialog.id, text)
-            except Exception as e:
-                logger.warning(f"Failed to send to {dialog.id}: {e}")
-    await update.message.reply_text("✅ Broadcast complete.")
 
+    if not update.message.reply_to_message:
+        return await update.message.reply_text("⚠️ Reply to a message to broadcast it.")
+
+    # Message text to broadcast
+    msg = update.message.reply_to_message
+
+    # Pull all group IDs from MongoDB
+    groups = list(db.groups.find({}, {"chat_id": 1}))
+    success, failed = 0, 0
+
+    for group in groups:
+        gid = group["chat_id"]
+        try:
+            await context.bot.forward_message(chat_id=gid, from_chat_id=msg.chat.id, message_id=msg.message_id)
+            success += 1
+        except Exception as e:
+            logger.warning(f"❌ Failed to send to {gid}: {e}")
+            failed += 1
+        await asyncio.sleep(0.35)
+
+    await update.message.reply_text(f"✅ Broadcast complete.\nSent: {success}\nFailed: {failed}")
 # Warn system using MongoDB
 # Mongo: warnings { _id: {chat_id}:{user_id}, count: int }
 
