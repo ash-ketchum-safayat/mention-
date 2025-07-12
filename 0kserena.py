@@ -566,14 +566,44 @@ async def log_action(text: str, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"[Log Error] {e}")
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import (
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    Update
+)
 from telegram.ext import ContextTypes
+from datetime import datetime
+import asyncio
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes
+BOT_START_TIME = datetime.utcnow()  # Place this at the top of your script
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
     message = update.message or update.callback_query.message
+    chat = update.effective_chat
+
+    # 📌 Group or channel start logic
+    if chat.type in ["group", "supergroup", "channel"]:
+        # Calculate uptime
+        uptime = datetime.utcnow() - BOT_START_TIME
+        days, remainder = divmod(int(uptime.total_seconds()), 86400)
+        hours, remainder = divmod(remainder, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        uptime_str = f"{days}d {hours}h {minutes}m {seconds}s"
+
+        return await message.reply_text(f"✅ I am online!\n⏱ Uptime: `{uptime_str}`", parse_mode="Markdown")
+
+    # 🧑 Private chat animation + buttons
+    anim_msg = await message.reply_text("I am Serena...")
+
+    await asyncio.sleep(1.2)
+    await anim_msg.edit_text(f"[{user.first_name}](tg://user?id={user.id}) nice to meet you", parse_mode="Markdown")
+
+    await asyncio.sleep(1.2)
+    await anim_msg.edit_text("I am a group management bot")
+
+    await asyncio.sleep(1.2)
+    await anim_msg.delete()
 
     keyboard = [
         [InlineKeyboardButton("➕ Add Me", url="https://t.me/SerenaProbot?startgroup=true")],
@@ -586,7 +616,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
 
     await message.reply_video(
-        video="https://envs.sh/e_B.mp4",    # Replace with working URL
+        video="https://envs.sh/e_B.mp4",  # ✅ Ensure this is a direct MP4 URL
         caption=(
             "👋 *Welcome to Serena!*\n\n"
             "I'm your smart group management assistant.\n"
