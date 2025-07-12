@@ -1181,8 +1181,7 @@ from telethon import events, Button
 from datetime import datetime
 import platform
 import telethon
-
-OWNER_ID = 7941973230  # Replace with your actual ID
+old_owner = 7941973230  # Replace with your actual ID
 BOT_START_TIME = datetime.utcnow()
 
 @client.on(events.NewMessage(pattern="/botstats"))
