@@ -1987,7 +1987,8 @@ def main():
     
     
     app.run_polling()
-
+    print(">> BOT STARTED <<")
+    client.run_until_disconnected()
 
 import asyncio
 
