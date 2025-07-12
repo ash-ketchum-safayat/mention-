@@ -1177,70 +1177,46 @@ from pymongo import MongoClient
 
 
 # Track start time
-from telethon import events, Button
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes
 from datetime import datetime
-import platform
-import telethon
-old_owner = 7941973230  # Replace with your actual ID
+import platform  # Replace with your actual owner ID
 BOT_START_TIME = datetime.utcnow()
 
-@client.on(events.NewMessage(pattern="/botstats"))
-async def botstats(event):
-    # Only owner allowed
-    if event.sender_id != OWNER_ID:
+async def botstats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    if user_id != OWNER_ID:
+        await update.message.reply_text("⛔ Only the owner can use this command.")
         return
 
-    # Uptime calculation
     uptime = datetime.utcnow() - BOT_START_TIME
     days, remainder = divmod(int(uptime.total_seconds()), 86400)
     hours, remainder = divmod(remainder, 3600)
     minutes, seconds = divmod(remainder, 60)
     uptime_str = f"{days}d {hours}h {minutes}m {seconds}s"
 
-    # MongoDB counts
+    # Replace with your MongoDB document counts
     total_users = await users_col.count_documents({})
     total_admins = await admins_col.count_documents({})
 
-    # Count groups and channels
-    groups = 0
-    channels = 0
-    async for dialog in client.iter_dialogs():
-        if dialog.is_group:
-            groups += 1
-        elif dialog.is_channel:
-            channels += 1
-
     python_ver = platform.python_version()
-    telethon_ver = telethon.__version__
 
     text = (
         f"📊 <b>Bot Statistics</b>\n\n"
         f"👤 Total Users: <code>{total_users}</code>\n"
         f"👮 Admins: <code>{total_admins}</code>\n"
-        f"👥 Groups: <code>{groups}</code>\n"
-        f"📢 Channels: <code>{channels}</code>\n"
         f"⏱ Uptime: <code>{uptime_str}</code>\n\n"
-        f"⚙️ Python: <code>{python_ver}</code>\n"
-        f"📦 Telethon: <code>{telethon_ver}</code>"
+        f"⚙️ Python: <code>{python_ver}</code>"
     )
 
-    button = [
-        [Button.url("👤 Owner", url="https://t.me/AshKetchum_001")]
+    buttons = [
+        [InlineKeyboardButton("👤 Owner", url="https://t.me/AshKetchum_001")]
     ]
 
-    await client.send_message(
-        event.chat_id,
-        text,
-        buttons=button,
-        parse_mode="html"
-    )
+    reply_markup = InlineKeyboardMarkup(buttons)
 
-    await client.send_message(
-        event.chat_id,
-        text,
-        buttons=button,
-        parse_mode="html"
-    )
+    await update.message.reply_text(text, reply_markup=reply_markup, parse_mode="HTML")
                           
 async def report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message.reply_to_message:
