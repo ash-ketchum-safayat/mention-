@@ -48,6 +48,23 @@ menu_images = [
 spam_chats = []
 group_members = {}  # {chat_id: set(user_ids)}
 
+words = [
+    "python", "chat", "bot", "quiz", 
+    "code", "app", "web", "game", 
+    "data", "user", "team", "test", 
+    "help", "file", "edit", "save", 
+    "send", "receive", "search", "link", 
+    "page", "post", "like", "share", 
+    "click", "play", "run", "stop", 
+    "start", "stop", "install", "update",
+    "error", "bug", "fix", "work",
+    "learn", "build", "create", 
+    "design", "style", "look",
+    "fast", "easy", "simple",
+    "show", "tell", "read", 
+    "write", "draw",
+]
+
 truths = [
     "What’s your biggest fear?",
     "Have you ever lied to your best friend?",
