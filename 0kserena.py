@@ -16,6 +16,9 @@ BOT_TOKEN = "8183522431:AAFqb8H5ZT5e-czF-bpCl12BEjVG9_cDW1g"
 OWNER_ID = 6279412066
 MONGO_URI = "mongodb+srv://wwwbangladeshiserverey:QLM2MQdEDFC4fsr2@miko.makogkx.mongodb.net/?retryWrites=true&w=majority&tls=true&appName=Miko"
 LOG_GROUP_ID = -1002869505504  # Replace with your actual log group ID
+api_id = int(8447214)
+api_hash = "9ec5782ddd935f7e2763e5e49a590c0d"
+client = TelegramClient('client61727', api_id, api_hash).start(bot_token=BOT_TOKEN)
 
 client_db = MongoClient(MONGO_URI)
 db = client_db["GroupBot"]
@@ -1045,80 +1048,52 @@ import asyncio
 spam_chats = []
 
 # Tag-All Command Handler
-async def mentionall(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat = update.effective_chat
-    user = update.effective_user
+@client.on(events.NewMessage(pattern="^/(tagall|mention|mentionall|utag|loud) ?(.*)"))
+async def mention_all(event):
+    chat_id = event.chat_id
+    if event.is_private:
+        return await event.reply("__This command can only be used in groups and channels!__")
 
-    if chat.type == ChatType.PRIVATE:
-        return await update.message.reply_text("🚫 This command can only be used in groups!")
+    try:
+        participant = await client(GetParticipantRequest(chat_id, event.sender_id))
+        if not isinstance(participant.participant, (ChannelParticipantAdmin, ChannelParticipantCreator)):
+            return await event.reply("__Only admins can mention all!__")
+    except UserNotParticipantError:
+        return await event.reply("__Only admins can mention all!__")
 
-    # Check admin status
-    member = await chat.get_member(user.id)
-    if not isinstance(member.status, str) or member.status not in ("administrator", "creator"):
-        return await update.message.reply_text("❌ Only admins can mention all members!")
+    if chat_id in spam_chats:
+        return await event.reply("**There is already a process ongoing...**")
 
-    if chat.id in spam_chats:
-        return await update.message.reply_text("⚠️ Tagging is already in progress...")
+    msg = event.pattern_match.group(2) or "Hello everyone!"
+    spam_chats.append(chat_id)
 
-    # Determine mode
-    mode = None
-    message = None
-    if context.args:
-        mode = "text_on_cmd"
-        message = " ".join(context.args)
-    elif update.message.reply_to_message:
-        mode = "text_on_reply"
-        message = update.message.reply_to_message
-    else:
-        return await update.message.reply_text("❓ Provide some text or reply to a message to tag everyone.")
-
-    spam_chats.append(chat.id)
-    user_count = 0
-    tag_text = ''
-
-    async for member in context.bot.get_chat_administrators(chat.id):  # Load admin cache
-        pass
-
-    async for user in context.bot.get_chat_members(chat.id):
-        if chat.id not in spam_chats:
+    usrnum = 0
+    usrtxt = ''
+    async for usr in client.iter_participants(chat_id):
+        if chat_id not in spam_chats:
             break
-
-        user_count += 1
-        name = user.user.first_name or "User"
-        tag_text += f"<a href='tg://user?id={user.user.id}'>{name}</a> "
-
-        if user_count == 7:
-            try:
-                if mode == "text_on_cmd":
-                    await context.bot.send_message(chat_id=chat.id, text=f"{tag_text}\n\n<b>{message}</b>", parse_mode=ParseMode.HTML)
-                elif mode == "text_on_reply":
-                    await message.reply_text(tag_text, parse_mode=ParseMode.HTML)
-            except Exception as e:
-                print(f"Error sending message: {e}")
+        usrnum += 1
+        usrtxt += f"<a href='tg://user?id={usr.id}'><b>{usr.first_name}</b></a>, "
+        if usrnum == 7:
+            await client.send_message(chat_id, f"{usrtxt}\n\n<b>{msg}</b>", parse_mode='html')
             await asyncio.sleep(1.5)
-            user_count = 0
-            tag_text = ''
+            usrnum = 0
+            usrtxt = ''
 
-    # Cleanup
-    try:
-        spam_chats.remove(chat.id)
-        await update.message.reply_text("✅ Finished mentioning everyone!\nJoin @AshxBots", parse_mode=ParseMode.HTML)
-    except Exception as e:
-        print(f"Cleanup error: {e}")
+    spam_chats.remove(chat_id)
+    await client.send_message(chat_id, "<b>✅ Mentioning All Users Done</b>\nJoin @AshxBots", parse_mode='html')
 
-# Cancel Command
-async def cancel_tag(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    if chat_id not in spam_chats:
-        return await update.message.reply_text("❌ There is no process ongoing...")
+@client.on(events.NewMessage(pattern="^/cancel$"))
+async def cancel_spam(event):
+  if not event.chat_id in spam_chats:
+    return await event.respond('__There is no proccess on going...__')
+  else:
     try:
-        spam_chats.remove(chat_id)
-        await update.message.reply_text("✅ Tagging stopped.")
+      spam_chats.remove(event.chat_id)
     except:
-        pass
+      pass
+    return await event.respond('__Stopped.__')
 
-
-# Initialize Bot
 
 
 from telegram import Update
