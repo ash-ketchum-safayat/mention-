@@ -1931,8 +1931,6 @@ def main():
     
 #app = Application.builder().token(BOT_TOKEN).build()
     app = ApplicationBuilder().token(BOT_TOKEN).post_init(startup_message).build()
-    app.add_handler(math_handler)
-    
 
     app.add_handler(CommandHandler(["start", "chaluhoja"], start))
     app.add_handler(CommandHandler("warn", warn))
@@ -1957,8 +1955,7 @@ def main():
     app.add_handler(CommandHandler("football", football))
     app.add_handler(CommandHandler("slot", slot))
     app.add_handler(CommandHandler("unpin", unpin))
-    app.add_handler(CommandHandler(["mention", "tagall", "utag", "tagx", "mentionall", "chutiyo", "bachhelog", "on"], mentionall))
-    app.add_handler(CommandHandler(["stop", "stopall", "rukja", "cancel", "fuckoff", "off"], cancel_tag))
+    
     app.add_handler(CommandHandler("broadcast", broadcast))
     app.add_handler(CommandHandler("id", get_id))
     app.add_handler(CommandHandler(["magicball", "predict"], magic8ball))
@@ -1996,7 +1993,6 @@ def main():
     app.add_handler(CommandHandler("translate", translate))
     app.add_handler(CommandHandler("broad", broad))
     app.add_handler(CommandHandler("groups", groups))
-    app.add_handler(MessageHandler(filters.ALL, track_all_users))
     app.add_handler(CommandHandler("ping", ping))
     app.add_handler(CommandHandler("time", time_cmd))
     app.add_handler(CommandHandler("remind", remind))
