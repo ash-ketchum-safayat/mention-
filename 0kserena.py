@@ -594,15 +594,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await message.reply_text(f"✅ I am online!\n⏱ Uptime: `{uptime_str}`", parse_mode="Markdown")
 
     # 🧑 Private chat animation + buttons
-    anim_msg = await message.reply_text("I am Serena...")
+    anim_msg = await message.reply_text("𝗪𝗲𝗹𝗰𝗼𝗺𝗲..")
+    await asyncio.sleep(0.5)
+    await anim_msg.edit_text(f"𝗪𝗲𝗹𝗰𝗼𝗺𝗲....")
 
-    await asyncio.sleep(1.2)
-    await anim_msg.edit_text(f"[{user.first_name}](tg://user?id={user.id}) nice to meet you", parse_mode="Markdown")
+    await asyncio.sleep(0.8)
+    await anim_msg.edit_text(f"[{user.first_name}](tg://user?id={user.id}) Nɪᴄᴇ ᴛᴏ Mᴇᴇᴛ Yᴏᴜ", parse_mode="Markdown")
 
-    await asyncio.sleep(1.2)
-    await anim_msg.edit_text("I am a group management bot")
+    await asyncio.sleep(1)
+    await anim_msg.edit_text("I'ᴍ ʏᴏᴜʀ sᴍᴀʀᴛ ɢʀᴏᴜᴘ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ ᴀssɪsᴛᴀɴᴛ.")
+    await asyncio.sleep(0.5)
+    await anim_msg.edit_text(f"Pᴏᴡᴇʀᴇᴅ ʙʏ : [Anime Asia Community]({https://t.me/Anime_Asia_Community})")
 
-    await asyncio.sleep(1.2)
+
+    await asyncio.sleep(1)
     await anim_msg.delete()
 
     keyboard = [
