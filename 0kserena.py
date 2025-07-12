@@ -571,45 +571,49 @@ from telegram import (
     InlineKeyboardButton,
     Update
 )
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update
 from telegram.ext import ContextTypes
 from datetime import datetime
 import asyncio
 
-BOT_START_TIME = datetime.utcnow()  # Place this at the top of your script
+BOT_START_TIME = datetime.utcnow()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     message = update.message or update.callback_query.message
     chat = update.effective_chat
 
-    # 📌 Group or channel start logic
+    # Group or channel
     if chat.type in ["group", "supergroup", "channel"]:
-        # Calculate uptime
         uptime = datetime.utcnow() - BOT_START_TIME
         days, remainder = divmod(int(uptime.total_seconds()), 86400)
         hours, remainder = divmod(remainder, 3600)
         minutes, seconds = divmod(remainder, 60)
         uptime_str = f"{days}d {hours}h {minutes}m {seconds}s"
-
         return await message.reply_text(f"✅ I am online!\n⏱ Uptime: `{uptime_str}`", parse_mode="Markdown")
 
-    # 🧑 Private chat animation + buttons
-    anim_msg = await message.reply_text("𝗪𝗲𝗹𝗰𝗼𝗺𝗲..")
-    await asyncio.sleep(0.5)
-    await anim_msg.edit_text(f"𝗪𝗲𝗹𝗰𝗼𝗺𝗲....")
+    # Private chat animation
+    try:
+        anim_msg = await message.reply_text("𝗪𝗲𝗹𝗰𝗼𝗺𝗲..")
+        await asyncio.sleep(0.5)
+        await anim_msg.edit_text("𝗪𝗲𝗹𝗰𝗼𝗺𝗲....")
+        await asyncio.sleep(0.8)
+        await anim_msg.edit_text(
+            f"[{user.first_name}](tg://user?id={user.id}) Nɪᴄᴇ ᴛᴏ Mᴇᴇᴛ Yᴏᴜ", parse_mode="Markdown"
+        )
+        await asyncio.sleep(1)
+        await anim_msg.edit_text("I'ᴍ ʏᴏᴜʀ sᴍᴀʀᴛ ɢʀᴏᴜᴘ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ ᴀssɪsᴛᴀɴᴛ.")
+        await asyncio.sleep(0.5)
+        await anim_msg.edit_text(
+            "Pᴏᴡᴇʀᴇᴅ ʙʏ : [Anime Asia Community](https://t.me/Anime_Asia_Community)",
+            parse_mode="Markdown"
+        )
+        await asyncio.sleep(1)
+        await anim_msg.delete()
+    except Exception as e:
+        print(f"❌ Animation failed: {e}")
 
-    await asyncio.sleep(0.8)
-    await anim_msg.edit_text(f"[{user.first_name}](tg://user?id={user.id}) Nɪᴄᴇ ᴛᴏ Mᴇᴇᴛ Yᴏᴜ", parse_mode="Markdown")
-
-    await asyncio.sleep(1)
-    await anim_msg.edit_text("I'ᴍ ʏᴏᴜʀ sᴍᴀʀᴛ ɢʀᴏᴜᴘ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ ᴀssɪsᴛᴀɴᴛ.")
-    await asyncio.sleep(0.5)
-    await anim_msg.edit_text(f"Pᴏᴡᴇʀᴇᴅ ʙʏ : [Anime Asia Community]({https://t.me/Anime_Asia_Community})")
-
-
-    await asyncio.sleep(1)
-    await anim_msg.delete()
-
+    # Buttons
     keyboard = [
         [InlineKeyboardButton("➕ Add Me", url="https://t.me/SerenaProbot?startgroup=true")],
         [
@@ -621,7 +625,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
 
     await message.reply_video(
-        video="https://envs.sh/e_B.mp4",  # ✅ Ensure this is a direct MP4 URL
+        video="https://envs.sh/e_B.mp4",
         caption=(
             "👋 *Welcome to Serena!*\n\n"
             "I'm your smart group management assistant.\n"
@@ -630,8 +634,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
     )
-
-
 
     
 
