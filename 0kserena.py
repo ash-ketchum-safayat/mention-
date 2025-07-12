@@ -1140,24 +1140,55 @@ from pymongo import MongoClient
 
 
 # Track start time
-async def botstats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    groups = await db.groups.count_documents({})
-    users = await db.users.count_documents({})
+from telethon.tl.custom import Button
+
+@client.on(events.NewMessage(pattern="/botstats"))
+async def botstats(event):
+    if event.sender_id != OWNER_ID:
+        return  # Only owner allowed
 
     uptime = datetime.utcnow() - BOT_START_TIME
     days, remainder = divmod(int(uptime.total_seconds()), 86400)
     hours, remainder = divmod(remainder, 3600)
-    minutes = remainder // 60
-    up_str = f"{days}d {hours}h {minutes}m"
+    minutes, seconds = divmod(remainder, 60)
+    uptime_str = f"{days}d {hours}h {minutes}m {seconds}s"
 
-    msg = (
-        "📊 <b>Bot Stats</b>\n\n"
-        f"• Total Groups: <code>{groups}</code>\n"
-        f"• Total Users: <code>{users}</code>\n"
-        f"• Uptime: <code>{up_str}</code>\n"
-        f"• Developer: @AshKetchum_001"
+    total_users = await users_col.count_documents({})
+    total_admins = await admins_col.count_documents({})
+    
+    groups = 0
+    channels = 0
+    async for dialog in client.iter_dialogs():
+        if dialog.is_group:
+            groups += 1
+        elif dialog.is_channel:
+            channels += 1
+
+    python_ver = platform.python_version()
+    telethon_ver = telethon.__version__
+
+    text = (
+        f"📊 <b>Bot Statistics</b>\n\n"
+        f"👤 Total Users: <code>{total_users}</code>\n"
+        f"👮 Admins: <code>{total_admins}</code>\n"
+        f"👥 Groups: <code>{groups}</code>\n"
+        f"📢 Channels: <code>{channels}</code>\n"
+        f"⏱ Uptime: <code>{uptime_str}</code>\n\n"
+        f"⚙️ Python: <code>{python_ver}</code>\n"
+        f"📦 Telethon: <code>{telethon_ver}</code>"
     )
-    await update.message.reply_text(msg, parse_mode="HTML")                          
+
+    button = [
+        [Button.url("👤 Owner", url="https://t.me/AshKetchum_001")]
+    ]
+
+    await client.send_message(
+        event.chat_id,
+        text,
+        buttons=button,
+        parse_mode="html"
+    )
+                          
 async def report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message.reply_to_message:
         return await update.message.reply_text("⚠️ Reply to a message to report it.")
