@@ -13,6 +13,11 @@ from telegram.ext import ApplicationBuilder
 from telegram.ext import ChatMemberHandler
 import asyncio
 from telethon import TelegramClient, events
+import asyncio
+from telethon import TelegramClient, events
+from telethon.tl.functions.channels import GetParticipantRequest
+from telethon.errors import UserNotParticipantError
+from telethon.tl.types import ChannelParticipantAdmin, ChannelParticipantCreator
 
 BOT_TOKEN = "8183522431:AAFqb8H5ZT5e-czF-bpCl12BEjVG9_cDW1g"
 OWNER_ID = 6279412066
