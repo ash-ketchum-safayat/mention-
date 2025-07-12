@@ -53,6 +53,17 @@ menu_images = [
 spam_chats = []
 group_members = {}  # {chat_id: set(user_ids)}
 
+async def send_in_thread(update: Update, context: ContextTypes.DEFAULT_TYPE, text, **kwargs):
+    """Forum-safe message sender"""
+    kwargs.update({
+        "chat_id": update.effective_chat.id,
+        "text": text
+    })
+    if update.message and update.message.message_thread_id:
+        kwargs["message_thread_id"] = update.message.message_thread_id
+
+    await context.bot.send_message(**kwargs)
+
 words = [
     "python", "chat", "bot", "quiz", 
     "code", "app", "web", "game", 
@@ -1318,45 +1329,45 @@ async def guess(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"⏰ Time's up! The number was `{number}`.", parse_mode="Markdown")
 
 async def joke(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(f"😂 {random.choice(jokes)}")
+    await send_in_thread(update, context, f"😂 {random.choice(jokes)}")
 
 async def roast(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(f"🔥 {random.choice(roasts)}")
+    await send_in_thread(update, context, f"🔥 {random.choice(roasts)}")
 
 async def compliment(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(f"😊 {random.choice(compliments)}")                                                   
+    await send_in_thread(update, context, f"😊 {random.choice(compliments)}")
+
 async def intelligencerate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user.first_name
     rate = random.randint(10, 160)
-    await update.message.reply_text(f"🧠 {user}'s IQ is approximately *{rate}*.", parse_mode="Markdown")      
-    
+    await send_in_thread(update, context, f"🧠 {user}'s IQ is approximately *{rate}*.", parse_mode="Markdown")
 
 async def magic8ball(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        return await update.message.reply_text("🎱 Ask something like: `/magicball Will I be rich?`", parse_mode="Markdown")
+        return await send_in_thread(update, context, "🎱 Ask something like: `/magicball Will I be rich?`", parse_mode="Markdown")
     
     response = random.choice(magic_responses)
-    await update.message.reply_text(f"🎱 {response}")
-                                             
+    await send_in_thread(update, context, f"🎱 {response}")
 
 async def personality(update: Update, context: ContextTypes.DEFAULT_TYPE):
     trait = random.choice(personalities)
-    await update.message.reply_text(f"🧬 Your personality today is: *{trait}*", parse_mode="Markdown")
-    
+    await send_in_thread(update, context, f"🧬 Your personality today is: *{trait}*", parse_mode="Markdown")
 
 async def riddle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     r = random.choice(riddles)
-    await update.message.reply_text(f"🧩 Riddle: {r['q']}\n_You have 15 seconds to answer!_", parse_mode="Markdown")
+    await send_in_thread(update, context, f"🧩 Riddle: {r['q']}\n_You have 15 seconds to answer!_", parse_mode="Markdown")
+
+    def answer_filter(msg):
+        return msg.chat.id == update.effective_chat.id and msg.text
 
     try:
         answer_msg = await context.application.bot.wait_for_message(timeout=15, filters=filters.TEXT)
         if answer_msg and r["a"].lower() in answer_msg.text.lower():
-            await update.message.reply_text("✅ Correct! You’re a genius.")
+            await send_in_thread(update, context, "✅ Correct! You’re a genius.")
         else:
-            await update.message.reply_text(f"❌ Wrong! Answer was: *{r['a']}*", parse_mode="Markdown")
+            await send_in_thread(update, context, f"❌ Wrong! Answer was: *{r['a']}*", parse_mode="Markdown")
     except:
-        await update.message.reply_text(f"⏰ Time’s up! Correct answer was: *{r['a']}*", parse_mode="Markdown")                                
- 
+        await send_in_thread(update, context, f"⏰ Time’s up! Correct answer was: *{r['a']}*", parse_mode="Markdown")
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
