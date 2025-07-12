@@ -1177,22 +1177,32 @@ from pymongo import MongoClient
 
 
 # Track start time
-from telethon.tl.custom import Button
+from telethon import events, Button
+from datetime import datetime
+import platform
+import telethon
+
+OWNER_ID = 7941973230  # Replace with your actual ID
+BOT_START_TIME = datetime.utcnow()
 
 @client.on(events.NewMessage(pattern="/botstats"))
 async def botstats(event):
+    # Only owner allowed
     if event.sender_id != OWNER_ID:
-        return  # Only owner allowed
+        return
 
+    # Uptime calculation
     uptime = datetime.utcnow() - BOT_START_TIME
     days, remainder = divmod(int(uptime.total_seconds()), 86400)
     hours, remainder = divmod(remainder, 3600)
     minutes, seconds = divmod(remainder, 60)
     uptime_str = f"{days}d {hours}h {minutes}m {seconds}s"
 
+    # MongoDB counts
     total_users = await users_col.count_documents({})
     total_admins = await admins_col.count_documents({})
-    
+
+    # Count groups and channels
     groups = 0
     channels = 0
     async for dialog in client.iter_dialogs():
@@ -1218,6 +1228,13 @@ async def botstats(event):
     button = [
         [Button.url("👤 Owner", url="https://t.me/AshKetchum_001")]
     ]
+
+    await client.send_message(
+        event.chat_id,
+        text,
+        buttons=button,
+        parse_mode="html"
+    )
 
     await client.send_message(
         event.chat_id,
