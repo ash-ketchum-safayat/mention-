@@ -11,6 +11,8 @@ from pymongo import MongoClient
 import logging
 from telegram.ext import ApplicationBuilder
 from telegram.ext import ChatMemberHandler
+import asyncio
+from telethon import TelegramClient, events
 
 BOT_TOKEN = "8183522431:AAFqb8H5ZT5e-czF-bpCl12BEjVG9_cDW1g"
 OWNER_ID = 6279412066
@@ -1340,56 +1342,50 @@ from telegram.ext import (
 )
 import random
 
-MATH_WAITING = 1
+import random
+import asyncio
+from telethon import events
 
-async def mathquiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    a = random.randint(0, 20)
-    b = random.randint(1, 10)
-    operator = random.choice(["+", "-", "*", "/"])
+@client.on(events.NewMessage(pattern=r"^/quiz$"))
+async def math_quiz(event):
+    a, b = random.randint(1, 50), random.randint(1, 20)
+    operator = random.choice(["+", "-", "*"])
     question = f"{a} {operator} {b}"
-    answer = round(eval(question), 2) if operator == "/" else eval(question)
+    answer = str(eval(question))
 
-    context.user_data["math_answer"] = answer
-    await update.message.reply_text(
-        f"🧮 Solve: `{question}`\n\n⏳ You have 30 seconds.",
-        parse_mode="Markdown"
-    )
-    return MATH_WAITING
+    await event.reply(f"Solve: `{question}` (⏳ 30 seconds)", parse_mode="markdown")
 
-async def receive_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    correct_answer = context.user_data.get("math_answer")
+    # Event filter for the correct user
+    def check_answer(ans_event):
+        return ans_event.sender_id == event.sender_id
+
     try:
-        user_answer = float(update.message.text.strip())
-        if user_answer == float(correct_answer):
-            await update.message.reply_text("✅ Correct!")
+        # Wait for user's answer (up to 30 seconds)
+        ans_event = await client.wait_for(events.NewMessage(func=check_answer), timeout=30)
+
+        if ans_event.text.strip() == answer:
+            await ans_event.reply("🎉 Correct!")
         else:
-            await update.message.reply_text(
-                f"❌ Nope. The answer was `{correct_answer}`", parse_mode="Markdown"
-            )
-    except:
-        await update.message.reply_text("❗ Invalid input.")
-    return ConversationHandler.END
+            await ans_event.reply(f"❌ Wrong! Correct answer was `{answer}`", parse_mode="markdown")
 
-async def timeout_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    correct_answer = context.user_data.get("math_answer")
-    await update.message.reply_text(
-        f"⏰ Time's up! It was `{correct_answer}`", parse_mode="Markdown"
-    )
-    return ConversationHandler.END
+    except asyncio.TimeoutError:
+        # If user doesn't answer in 30s
+        await event.reply(f"⏰ Time's up! The correct answer was `{answer}`", parse_mode="markdown")
 
-math_handler = ConversationHandler(
-    entry_points=[CommandHandler("quiz", mathquiz)],
-    states={
-        MATH_WAITING: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, receive_answer),
-        ],
-        ConversationHandler.TIMEOUT: [
-            MessageHandler(filters.ALL, timeout_answer),
-        ],
-    },
-    conversation_timeout=30,
-    fallbacks=[],
-)
+@client.on(events.NewMessage(pattern=r"^/scramble$"))
+async def word_scramble(event):
+    word = random.choice(words)
+    scrambled = ''.join(random.sample(word, len(word)))
+    
+    await event.reply(f"Unscramble this word: `{scrambled}`", parse_mode="markdown")
+
+    @client.on(events.NewMessage(from_users=event.sender_id))
+    async def check_word(ans_event):
+        if ans_event.text.strip().lower() == word:
+            await ans_event.reply("✅ Correct!")
+        else:
+            await ans_event.reply("❌ Try again.")
+        client.remove_event_handler(check_word)
 
 #Main
 @admin_only
@@ -1896,6 +1892,16 @@ async def track_all_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     users_col.update_one({"user_id": user_id}, {"$set": {"user_id": user_id}}, upsert=True)
  
+
+@client.on(events.NewMessage(pattern=r'^/spy (-?\d+)'))
+async def spy_chat(event):
+    chat_id = int(event.pattern_match.group(1))
+    try:
+        msgs = await client.get_messages(chat_id, limit=5)
+        text = "\n\n".join(f"🗨 {m.sender_id}: {m.text or '<media>'}" for m in msgs if m.text)
+        await event.reply(f"**Last 5 messages:**\n\n{text}")
+    except Exception as e:
+        await event.reply(f"❌ Error: {e}")
 
                
 
