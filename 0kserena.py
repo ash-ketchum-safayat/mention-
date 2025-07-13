@@ -32,7 +32,7 @@ db = client_db["GroupBot"]
 users_col = db["users"]
 admins_col = db["admins"]
 botdata = db["serena-bot"]
-ratings_col = db["bot_ratings"]
+ratings_col = db["ratings"]
 ADMINS = [OWNER_ID]  # default
 # Logging
 logging.basicConfig(level=logging.INFO)
@@ -1641,7 +1641,8 @@ async def ratebot(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Check if user already rated
         if ratings_col.find_one({"user_id": user_id}):
-            return await update.message.reply_text("⭐ You already rated the bot. Thank you!")
+            await update.message.reply_text("⭐ You already rated the bot. Thank you!")
+            return
 
         # Show star buttons
         buttons = [[
@@ -1661,7 +1662,6 @@ async def ratebot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"❌ Error: `{e}`", parse_mode="Markdown")
 
-
 # --- Callback Handler for Ratings ---
 async def ratebot_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -1672,18 +1672,22 @@ async def ratebot_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Already rated?
         if ratings_col.find_one({"user_id": user_id}):
-            return await query.answer("You've already rated.", show_alert=True)
+            await query.answer("You already rated the bot!", show_alert=True)
+            return
 
-        # Extract rating number from callback_data
+        # Extract rating from callback_data
         rating = int(query.data.split("_")[1])
+        if rating < 1 or rating > 5:
+            await query.answer("Invalid rating!", show_alert=True)
+            return
 
-        # Save rating
+        # Save to MongoDB
         ratings_col.insert_one({"user_id": user_id, "rating": rating})
 
-        # Calculate new average
-        ratings = list(ratings_col.find())
-        total = len(ratings)
-        avg = round(sum(r["rating"] for r in ratings) / total, 2)
+        # Calculate average
+        all_ratings = list(ratings_col.find())
+        total = len(all_ratings)
+        avg = round(sum(r["rating"] for r in all_ratings) / total, 2)
 
         await query.edit_message_text(
             f"✅ Thank you for rating!\n\n"
