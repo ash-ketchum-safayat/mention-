@@ -688,12 +688,7 @@ import random
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import ContextTypes
 
-# Random images for menu background
-menu_images = [
-    "https://example.com/image1.jpg",
-    "https://example.com/image2.jpg",
-    # Add more URLs if you want
-]
+
 
 # Define command categories and descriptions
 COMMAND_CATEGORIES = {
@@ -2099,7 +2094,7 @@ def main():
     app.add_handler(CommandHandler("botstats", botstats))
     app.add_handler(CommandHandler("pin", pin))
     app.add_handler(CommandHandler("dice", dice))
-    app.add_handler(CommandHandler("basketball", basketball))
+    app.add_handler(CommandHandler("basket", basketball))
     app.add_handler(CommandHandler("bowling", bowling))
     app.add_handler(CommandHandler("dart", dart))
     app.add_handler(CommandHandler("football", football))
