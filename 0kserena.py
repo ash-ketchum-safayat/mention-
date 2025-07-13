@@ -1673,6 +1673,25 @@ async def ratebot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"❌ Error: `{e}`", parse_mode="Markdown")
 
+async def ratebot_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user = query.from_user
+    user_id = user.id
+    await query.answer()
+
+    if ratings_col.find_one({"user_id": user_id}):
+        await query.answer("You already rated the bot!", show_alert=True)
+        return
+
+    rating = int(query.data.split("_")[1])
+    pending_reviews[user_id] = rating
+    stars = "⭐" * rating
+
+    await query.message.reply_text(
+        f"✅ You rated {stars}\n\n📝 Now, please share a short review in one line:",
+        reply_markup=ForceReply(selective=True)
+    )
+
 # --- Callback Handler for Ratings ---
 async def review_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
