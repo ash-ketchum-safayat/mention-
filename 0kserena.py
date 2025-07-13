@@ -34,6 +34,13 @@ users_col = db["users"]
 admins_col = db["admins"]
 botdata = db["serena-bot"]
 ratings_col = db["ratings"]
+
+from tinydb import TinyDB, Query
+from datetime import datetime
+
+dbz = TinyDB("sdb.json")
+ratings_table = dbz.table("ratings")
+User = Query()
 ADMINS = [OWNER_ID]  # default
 # Logging
 logging.basicConfig(level=logging.INFO)
@@ -1637,53 +1644,58 @@ from telegram.ext import ContextTypes
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes
+
 async def ratebot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        user_id = update.effective_user.id
+    user_id = update.effective_user.id
 
-        # Check if already rated
-        if ratings_col.find_one({"user_id": user_id}):
-            await update.message.reply_text("⭐ You already rated the bot. Thank you!")
-            return
+    # Check if user already rated
+    if ratings_table.contains(User.user_id == user_id):
+        await update.message.reply_text("⭐ You already rated the bot. Thank you!")
+        return
 
-        # Custom layout: 3 in first row, 2 in second row
-        buttons = [
-            [
-                InlineKeyboardButton("⭐", callback_data="rate_1"),
-                InlineKeyboardButton("⭐⭐", callback_data="rate_2"),
-                InlineKeyboardButton("⭐⭐⭐", callback_data="rate_3"),
-            ],
-            [
-                InlineKeyboardButton("⭐⭐⭐⭐", callback_data="rate_4"),
-                InlineKeyboardButton("⭐⭐⭐⭐⭐", callback_data="rate_5"),
-            ]
+    # Buttons: 1–3 on first row, 4–5 on second
+    buttons = [
+        [
+            InlineKeyboardButton("⭐", callback_data="rate_1"),
+            InlineKeyboardButton("⭐⭐", callback_data="rate_2"),
+            InlineKeyboardButton("⭐⭐⭐", callback_data="rate_3"),
+        ],
+        [
+            InlineKeyboardButton("⭐⭐⭐⭐", callback_data="rate_4"),
+            InlineKeyboardButton("⭐⭐⭐⭐⭐", callback_data="rate_5"),
         ]
+    ]
 
-        await update.message.reply_text(
-            "**How would you rate this bot?**",
-            reply_markup=InlineKeyboardMarkup(buttons),
-            parse_mode="Markdown"
-        )
+    await update.message.reply_text(
+        "**How would you rate this bot?**",
+        reply_markup=InlineKeyboardMarkup(buttons),
+        parse_mode="Markdown"
+    )
 
-    except Exception as e:
-        await update.message.reply_text(f"❌ Error: `{e}`", parse_mode="Markdown")
+from telegram import ForceReply
+
+# In-memory pending review
+pending_reviews = {}
 
 async def ratebot_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    user = query.from_user
-    user_id = user.id
     await query.answer()
 
-    if ratings_col.find_one({"user_id": user_id}):
+    user = query.from_user
+    user_id = user.id
+
+    if ratings_table.contains(User.user_id == user_id):
         await query.answer("You already rated the bot!", show_alert=True)
         return
 
     rating = int(query.data.split("_")[1])
     pending_reviews[user_id] = rating
-    stars = "⭐" * rating
 
+    stars = "⭐" * rating
     await query.message.reply_text(
-        f"✅ You rated {stars}\n\n📝 Now, please share a short review in one line:",
+        f"✅ You rated {stars}\n\n📝 Now please share your review in one line:",
         reply_markup=ForceReply(selective=True)
     )
 
@@ -1691,57 +1703,54 @@ async def ratebot_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def review_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = user.id
-    review_text = update.message.text.strip()
 
     if user_id not in pending_reviews:
-        return  # Ignore if rating wasn't started
+        return  # Not expecting a review
 
+    review_text = update.message.text
     rating = pending_reviews.pop(user_id)
-    stars = "⭐" * rating
 
-    # Save to DB
-    ratings_col.insert_one({
+    # Save to TinyDB
+    ratings_table.insert({
         "user_id": user_id,
-        "user_name": user.first_name,
         "rating": rating,
         "review": review_text,
-        "timestamp": datetime.utcnow()
+        "timestamp": datetime.utcnow().isoformat()
     })
 
-    # Stats
-    all_ratings = list(ratings_col.find())
+    # Calculate average
+    all_ratings = ratings_table.all()
     total = len(all_ratings)
     avg = round(sum(r["rating"] for r in all_ratings) / total, 2)
 
-    # Log message
-    now = datetime.now()
-    date_str = now.strftime("%d-%m-%Y")
-    time_str = now.strftime("%I:%M %p")
-
-    log_msg = (
-        f"#SerenaRatingLog\n"
-        f"User : [{user.first_name}](tg://user?id={user_id})\n"
-        f"Id : `{user_id}`\n"
-        f"Rated : {stars}\n"
-        f"Review : {review_text}\n"
-        f"Date : {date_str}\n"
-        f"Time : {time_str}"
-    )
-
-    # Send to log group
-    await context.bot.send_message(
-        chat_id=LOG_CHANNEL_ID,
-        text=log_msg,
-        parse_mode="Markdown"
-    )
-
-    # Send confirmation to user
     await update.message.reply_text(
-        f"🎉 Thank you for your review!\n\n"
+        f"✅ Review saved!\n\n"
         f"📊 *Average Rating:* {avg} ⭐\n"
         f"🧑‍💻 *Total Ratings:* {total}",
         parse_mode="Markdown"
     )
+
+    # Log to group
+    try:
+        stars = "⭐" * rating
+        date = datetime.now().strftime("%Y-%m-%d")
+        time = datetime.now().strftime("%H:%M:%S")
+        name = user.first_name.replace("[", "").replace("]", "").replace("`", "")
+        mention = f"[{name}](tg://user?id={user_id})"
+
+        log = (
+            "#SerenaRatingLog\n"
+            f"User : {mention}\n"
+            f"Id : `{user_id}`\n"
+            f"Rated : {stars}\n"
+            f"Review : `{review_text}`\n"
+            f"Date : {date}\n"
+            f"Time : {time}"
+        )
+
+        await context.bot.send_message(chat_id=-1002812088972, text=log, parse_mode="Markdown")
+    except Exception as e:
+        print(f"Logging error: {e}")
 
 
 import os
