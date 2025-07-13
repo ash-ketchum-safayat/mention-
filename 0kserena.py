@@ -1635,23 +1635,33 @@ from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes
+
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes
+
 async def ratebot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user_id = update.effective_user.id
 
-        # Check if user already rated
+        # Check if already rated
         if ratings_col.find_one({"user_id": user_id}):
             await update.message.reply_text("⭐ You already rated the bot. Thank you!")
             return
 
-        # Show star buttons
-        buttons = [[
-            InlineKeyboardButton("⭐", callback_data="rate_1"),
-            InlineKeyboardButton("⭐⭐", callback_data="rate_2"),
-            InlineKeyboardButton("⭐⭐⭐", callback_data="rate_3"),
-            InlineKeyboardButton("⭐⭐⭐⭐", callback_data="rate_4"),
-            InlineKeyboardButton("⭐⭐⭐⭐⭐", callback_data="rate_5"),
-        ]]
+        # Custom layout: 3 in first row, 2 in second row
+        buttons = [
+            [
+                InlineKeyboardButton("⭐", callback_data="rate_1"),
+                InlineKeyboardButton("⭐⭐", callback_data="rate_2"),
+                InlineKeyboardButton("⭐⭐⭐", callback_data="rate_3"),
+            ],
+            [
+                InlineKeyboardButton("⭐⭐⭐⭐", callback_data="rate_4"),
+                InlineKeyboardButton("⭐⭐⭐⭐⭐", callback_data="rate_5"),
+            ]
+        ]
 
         await update.message.reply_text(
             "**How would you rate this bot?**",
@@ -1663,41 +1673,60 @@ async def ratebot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ Error: `{e}`", parse_mode="Markdown")
 
 # --- Callback Handler for Ratings ---
-async def ratebot_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
+async def review_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    user_id = user.id
+    review_text = update.message.text.strip()
 
-    try:
-        user_id = query.from_user.id
+    if user_id not in pending_reviews:
+        return  # Ignore if rating wasn't started
 
-        # Already rated?
-        if ratings_col.find_one({"user_id": user_id}):
-            await query.answer("You already rated the bot!", show_alert=True)
-            return
+    rating = pending_reviews.pop(user_id)
+    stars = "⭐" * rating
 
-        # Extract rating from callback_data
-        rating = int(query.data.split("_")[1])
-        if rating < 1 or rating > 5:
-            await query.answer("Invalid rating!", show_alert=True)
-            return
+    # Save to DB
+    ratings_col.insert_one({
+        "user_id": user_id,
+        "user_name": user.first_name,
+        "rating": rating,
+        "review": review_text,
+        "timestamp": datetime.utcnow()
+    })
 
-        # Save to MongoDB
-        ratings_col.insert_one({"user_id": user_id, "rating": rating})
+    # Stats
+    all_ratings = list(ratings_col.find())
+    total = len(all_ratings)
+    avg = round(sum(r["rating"] for r in all_ratings) / total, 2)
 
-        # Calculate average
-        all_ratings = list(ratings_col.find())
-        total = len(all_ratings)
-        avg = round(sum(r["rating"] for r in all_ratings) / total, 2)
+    # Log message
+    now = datetime.now()
+    date_str = now.strftime("%d-%m-%Y")
+    time_str = now.strftime("%I:%M %p")
 
-        await query.edit_message_text(
-            f"✅ Thank you for rating!\n\n"
-            f"📊 *Average Rating:* {avg} ⭐\n"
-            f"🧑‍💻 *Total Ratings:* {total}",
-            parse_mode="Markdown"
-        )
+    log_msg = (
+        f"#SerenaRatingLog\n"
+        f"User : [{user.first_name}](tg://user?id={user_id})\n"
+        f"Id : `{user_id}`\n"
+        f"Rated : {stars}\n"
+        f"Review : {review_text}\n"
+        f"Date : {date_str}\n"
+        f"Time : {time_str}"
+    )
 
-    except Exception as e:
-        await query.edit_message_text(f"❌ Error: `{e}`", parse_mode="Markdown")
+    # Send to log group
+    await context.bot.send_message(
+        chat_id=LOG_CHANNEL_ID,
+        text=log_msg,
+        parse_mode="Markdown"
+    )
+
+    # Send confirmation to user
+    await update.message.reply_text(
+        f"🎉 Thank you for your review!\n\n"
+        f"📊 *Average Rating:* {avg} ⭐\n"
+        f"🧑‍💻 *Total Ratings:* {total}",
+        parse_mode="Markdown"
+    )
 
 
 import os
@@ -2100,7 +2129,8 @@ def main():
     app.add_handler(CommandHandler(["fixit", "fix"], fixit))
     app.add_handler(CommandHandler("imgurl", imgurl))
     app.add_handler(CommandHandler("ratebot", ratebot))
-    app.add_handler(CallbackQueryHandler(ratebot_callback, pattern=r"^rate_")) 
+    app.add_handler(CallbackQueryHandler(ratebot_callback, pattern=r"^rate_\d$"))
+    app.add_handler(MessageHandler(filters.REPLY & filters.TEXT, review_handler))
     app.add_handler(CallbackQueryHandler(stats_callback, pattern="^stats$"))
     app.add_handler(CallbackQueryHandler(menu_callback, pattern="^(admin_menu|mod_menu|util_menu|info_menu|gban_menu|stats_menu|main_menu)$"))
     
