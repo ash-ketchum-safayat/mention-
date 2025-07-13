@@ -1839,6 +1839,43 @@ async def reveal_user_info(event):
     except Exception as e:
         await event.reply(f"❌ Error while revealing:\n`{e}`", parse_mode="md")
 
+from telethon import events
+from datetime import datetime
+
+@client.on(events.NewMessage(pattern=r"^/give(?:\s+(.+))?$"))
+async def give_currency_fake(event):
+    sender = await event.get_sender()
+    input_text = event.pattern_match.group(1)
+    
+    if not input_text or not event.is_reply:
+        return await event.reply("❌ Usage: Reply to a user and type `/give <currency> <amount>`", parse_mode="md")
+    
+    try:
+        parts = input_text.strip().split()
+        if len(parts) < 2:
+            return await event.reply("❌ Please provide both currency and amount.\nExample: `/give gold 500`", parse_mode="md")
+
+        currency = parts[0].capitalize()
+        amount = parts[1]
+
+        reply_msg = await event.get_reply_message()
+        receiver = await reply_msg.get_sender()
+
+        sender_mention = f"[{sender.first_name}](tg://user?id={sender.id})"
+        receiver_mention = f"[{receiver.first_name}](tg://user?id={receiver.id})"
+
+        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+
+        await event.reply(
+            f"✅ *Transaction Complete!*\n\n"
+            f"💰 {sender_mention} sent *{amount} {currency}* to {receiver_mention}\n"
+            f"🕒 Time: `{timestamp}`\n"
+            f"💡 _Note: This is a fun feature. No real currency was transferred._",
+            parse_mode="md"
+        )
+
+    except Exception as e:
+        await event.reply(f"❌ Error: `{e}`", parse_mode="md")
 
 import os
 import re
