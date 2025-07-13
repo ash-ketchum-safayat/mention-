@@ -683,104 +683,125 @@ async def ungban(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                         
 # === /menu ===
 
+import random
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import ContextTypes
-import random
 
+# Random images for menu background
+menu_images = [
+    "https://example.com/image1.jpg",
+    "https://example.com/image2.jpg",
+    # Add more URLs if you want
+]
+
+# Define command categories and descriptions
+COMMAND_CATEGORIES = {
+    "admin_menu": {
+        "title": "👮 Admin Commands",
+        "commands": [
+            "/admin - Access admin functions",
+            "/gban - Globally ban a user",
+            "/ungban - Remove global ban",
+            "/fullpromote - Full admin privileges",
+            "/create - Create a group",
+            "/broadcast - Send a message to all"
+        ]
+    },
+    "mod_menu": {
+        "title": "🛡️ Moderation",
+        "commands": [
+            "/warn - Warn a user",
+            "/resetwarns - Reset user warnings",
+            "/mute - Mute a user",
+            "/unmute - Unmute a user",
+            "/ban - Ban a user",
+            "/unban - Unban a user",
+            "/kick - Kick a user",
+            "/kickme - Kick yourself",
+            "/promote - Promote to admin",
+            "/demote - Demote to member",
+            "/pin - Pin a message",
+            "/unpin - Unpin a message",
+            "/purge - Delete multiple messages",
+            "/tagall, /mentionall - Mention everyone",
+            "/utag, /mentiona - Mention all (alternative)",
+            "/cancel, /stop - Stop tagging",
+            "/invite - Get group invite link",
+            "/del - Delete a specific message",
+            "/zombies - Remove deleted accounts",
+            "/bword - Ban a word",
+            "/ubword - Unban a word",
+            "/setrules - Set group rules",
+            "/rules - Show group rules",
+            "/welcome - Set welcome message",
+            "/translate - Translate text",
+            "/report - Report a user"
+        ]
+    },
+    "util_menu": {
+        "title": "🧰 Utilities",
+        "commands": [
+            "/userinfo - Get user info",
+            "/id - Get chat/user ID",
+            "/remind - Set reminder",
+            "/fix - Fix any Python code",
+            "/time - Show current time"
+        ]
+    },
+    "info_menu": {
+        "title": "ℹ️ Info & Start",
+        "commands": [
+            "/start or /chaluhoja - Start bot",
+            "/help - Show help menu",
+            "/menu - Show all options"
+        ]
+    },
+    "gban_menu": {
+        "title": "🎮 Fun & Games",
+        "commands": [
+            "/ping - Check bot response",
+            "/dice, /dart, /football, /basketball, /slot - Random games",
+            "/roll - Roll a random number",
+            "/flip, /coin - Flip a coin",
+            "/magicball, /predict - Magic 8 ball",
+            "/myluck - Check your luck",
+            "/wish - Wish checker",
+            "/truth - Truth question",
+            "/dare - Dare challenge",
+            "/guess - Guessing game",
+            "/joke, /jokes - Tell a joke",
+            "/roast - Roast a user",
+            "/flirt, /compliment - Compliment/flirt",
+            "/intelligent, /iq - Intelligence rating",
+            "/myself - Your personality traits",
+            "/riddle - Solve a riddle",
+            "/quiz - Math quiz"
+        ]
+    },
+    "stats_menu": {
+        "title": "📊 Stats & Logs",
+        "commands": [
+            "/statics - Bot statistics and database info",
+            "/ratebot - Rate the bot",
+            "/groups - List groups using bot"
+        ]
+    }
+}
+
+# Callback handler function
 async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    
-    back_btn = [[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]
+
     img_url = random.choice(menu_images)
+    back_btn = [[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]
 
-    sections = {
-        "admin_menu": (
-            "**👮 Admin Commands**\n\n"
-            "/admin - Access admin functions\n"
-            "/gban - Globally ban a user\n"
-            "/ungban - Remove global ban\n"
-            "/fullpromote - Full admin privileges\n"
-            "/create - Create a group\n"
-            "/broadcast - Send a message to all\n\n"
-            "Updates: @AshxBots"
-        ),
+    if query.data in COMMAND_CATEGORIES:
+        section = COMMAND_CATEGORIES[query.data]
+        caption = f"**{section['title']}**\n\n" + "\n".join(section["commands"]) + "\n\nUpdates: @AshxBots"
 
-        "mod_menu": (
-            "**🛡️ Moderation**\n\n"
-            "/warn - Warn a user\n"
-            "/resetwarns - Reset user warnings\n"
-            "/mute - Mute a user\n"
-            "/unmute - Unmute a user\n"
-            "/ban - Ban a user\n"
-            "/unban - Unban a user\n"
-            "/kick - Kick a user\n"
-            "/kickme - Kick yourself\n"
-            "/promote - Promote to admin\n"
-            "/demote - Demote to member\n"
-            "/pin - Pin a message\n"
-            "/unpin - Unpin a message\n"
-            "/purge - Delete multiple messages\n"
-            "/tagall, /mentionall - Mention everyone\n"
-            "/utag, /mentiona - Mention everyone\n"
-            "/cancel, /stop - Stop tagging\n"
-            "/invite - Get group invite link\n"
-            "/del - Delete a specific message\n"
-            "/zombies - Remove deleted accounts\n"
-            "/bword - Ban a word\n"
-            "/ubword - Unban a word\n"
-            "/setrules - Set group rules\n"
-            "/rules - Show group rules\n"
-            "/welcome - Set welcome message\n"
-            "/translate - Translate text\n"
-            "/report - Report a user"
-        ),
-
-        "util_menu": (
-            "**🧰 Utilities**\n\n"
-            "/userinfo - Get user info\n"
-            "/id - Get chat/user ID\n"
-            "/remind - set reminder\n"
-            "/fix - fix any python code"
-        ),
-
-        "info_menu": (
-            "**ℹ️ Info & Start**\n\n"
-            "/start or /chaluhoja - Start bot\n"
-            "/help - Show help menu\n"
-            "/menu - Show all options\n"
-        ),
-
-        "gban_menu": (
-            "**🎮 Fun & Games**\n\n"
-            "/ping - Check bot response\n"
-            "/dice - Roll a dice\n"
-            "/roll - Roll a random number\n"
-            "/flip or /coin - Flip a coin\n"
-            "/magicball or /predict - Magic ball 🪄 response\n"
-            "/myluck - Check your luck\n"
-            "/wish - Wish checker\n"
-            "/truth - Truth question\n"
-            "/dare - Dare challenge\n"
-            "/guess - Guessing game\n"
-            "/joke, /jokes - Tell a joke\n"
-            "/roast - Roast a user\n"
-            "/flirt or /compliment - Compliment/flirt\n"
-            "/intelligent or /iq - Intelligence rating\n"
-            "/myself - Your personality traits\n"
-            "/riddle - Solve a riddle\n"
-            "/quiz - Math quiz"
-        ),
-
-        "stats_menu": (
-            "**📊 Stats & Logs**\n\n"
-            "/statics - Bot statistics and database info"
-        )
-    }
-
-    if query.data in sections:
         await query.message.edit_media(
-            media=InputMediaPhoto(media=img_url, caption=sections[query.data], parse_mode="Markdown"),
+            media=InputMediaPhoto(media=img_url, caption=caption, parse_mode="Markdown"),
             reply_markup=InlineKeyboardMarkup(back_btn)
         )
 
