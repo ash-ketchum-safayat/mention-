@@ -23,6 +23,7 @@ BOT_TOKEN = "8183522431:AAFqb8H5ZT5e-czF-bpCl12BEjVG9_cDW1g"
 OWNER_ID = 6279412066
 MONGO_URI = "mongodb+srv://wwwbangladeshiserverey:QLM2MQdEDFC4fsr2@miko.makogkx.mongodb.net/?retryWrites=true&w=majority&tls=true&appName=Miko"
 LOG_GROUP_ID = -1002869505504  # Replace with your actual log group ID
+LOG_CHANNEL_ID =-1002812088972
 api_id = int(8447214)
 api_hash = "9ec5782ddd935f7e2763e5e49a590c0d"
 client = TelegramClient('client61727', api_id, api_hash).start(bot_token=BOT_TOKEN)
