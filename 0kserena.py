@@ -1658,13 +1658,13 @@ async def ratebot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Buttons: 1–3 on first row, 4–5 on second
     buttons = [
         [
-            InlineKeyboardButton("⭐", callback_data="rate_1"),
-            InlineKeyboardButton("⭐⭐", callback_data="rate_2"),
-            InlineKeyboardButton("⭐⭐⭐", callback_data="rate_3"),
+            InlineKeyboardButton("1 ⭐", callback_data="rate_1"),
+            InlineKeyboardButton("2 ⭐", callback_data="rate_2"),
+            InlineKeyboardButton("3 ⭐", callback_data="rate_3"),
         ],
         [
-            InlineKeyboardButton("⭐⭐⭐⭐", callback_data="rate_4"),
-            InlineKeyboardButton("⭐⭐⭐⭐⭐", callback_data="rate_5"),
+            InlineKeyboardButton("4 ⭐", callback_data="rate_4"),
+            InlineKeyboardButton("5 ⭐", callback_data="rate_5"),
         ]
     ]
 
@@ -1751,6 +1751,93 @@ async def review_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=-1002812088972, text=log, parse_mode="Markdown")
     except Exception as e:
         print(f"Logging error: {e}")
+
+from telethon import events, functions
+from datetime import datetime
+import re
+
+def estimate_account_year(user_id: int) -> str:
+    if user_id >= 1700000000:
+        return "~2024+"
+    elif user_id >= 1500000000:
+        return "~2023"
+    elif user_id >= 1200000000:
+        return "~2022"
+    elif user_id >= 1000000000:
+        return "~2021"
+    elif user_id >= 800000000:
+        return "~2020"
+    else:
+        return "Unknown"
+
+@client.on(events.NewMessage(pattern=r"^/reveal(?:\s+(.+))?$"))
+async def reveal_user_info(event):
+    input_arg = event.pattern_match.group(1)
+    user = None
+
+    try:
+        if event.is_reply:
+            reply = await event.get_reply_message()
+            user = await reply.get_sender()
+
+        elif input_arg:
+            arg = input_arg.strip()
+            if arg.startswith("@"):
+                user = await client.get_entity(arg)
+            elif arg.isdigit():
+                user = await client.get_entity(int(arg))
+            else:
+                return await event.reply("❌ Invalid input. Use /reveal @username or user ID.")
+
+        else:
+            return await event.reply("❌ Please reply to a user or provide a username/user ID.")
+
+        user_id = user.id
+        full_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
+        profile_link = f"[Click here](tg://user?id={user_id})"
+        is_bot = "Yes" if user.bot else "No"
+        username = f"@{user.username}" if user.username else "None"
+        bio = (await client(functions.users.GetFullUserRequest(user))).about or "Not public"
+
+        photos = await client.get_profile_photos(user)
+        photo_count = photos.total if photos else 0
+
+        # Estimate creation year
+        creation_year = estimate_account_year(user_id)
+
+        # Count mutual groups
+        mutual_chats = 0
+        async for dialog in client.iter_dialogs():
+            if dialog.is_group:
+                try:
+                    member = await client.get_participant(dialog.id, user)
+                    if member:
+                        mutual_chats += 1
+                except:
+                    continue
+
+        trust = 50 + (photo_count * 2) + (mutual_chats // 2)
+        trust -= 5 if "x" in full_name.lower() or (user.username and "x" in user.username.lower()) else 0
+        trust = max(0, min(100, trust))
+
+        await event.reply(
+            f"🔍 **Telegram Identity Report**\n\n"
+            f"👤 **Name:** {full_name}\n"
+            f"🆔 **User ID:** `{user_id}`\n"
+            f"🔗 **Profile:** {profile_link}\n"
+            f"👁️ **Username:** {username}\n"
+            f"📖 **Bio:** `{bio}`\n"
+            f"📸 **Photos:** {photo_count}\n"
+            f"🔗 **Common Groups:** {mutual_chats}\n"
+            f"📅 **Estimated Account Year:** {creation_year}\n"
+            f"🤖 **Is Bot:** {is_bot}\n"
+            f"✅ **Trust Score:** {trust}%\n\n"
+            f"_🧠 Powered by Serena Reveal Engine™_",
+            parse_mode="md"
+        )
+
+    except Exception as e:
+        await event.reply(f"❌ Error while revealing:\n`{e}`", parse_mode="md")
 
 
 import os
