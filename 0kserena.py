@@ -2199,7 +2199,10 @@ async def spy_chat(event):
         await event.reply(f"❌ Error: {e}")
 
                
+from keep_alive import keep_alive, start_requesting
 
+keep_alive()
+start_requesting()
                              
 def main():
     print("Bot starting...")
