@@ -5,6 +5,7 @@ asyncio
 requests
 pillow
 opencv-python
+Flask
 qrcode
 gTTS
 psutil
