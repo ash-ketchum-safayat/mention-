@@ -18,8 +18,7 @@ logging.basicConfig(
 )
 LOGGER = logging.getLogger(__name__)
 
-MONGO_URI = "mongodb+srv://username:password@cluster.mongodb.net/"
-DB_NAME = "serena_bot_db"
+MONGO_URI = "mongodb+srv://ladisak673_db_user:JMMYnzOPl4iBEvq2@mention.a2nbbtz.mongodb.net/?appName=mention"
 
 mongo_client = MongoClient(MONGO_URI)
 db = mongo_client[DB_NAME]
